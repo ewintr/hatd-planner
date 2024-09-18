@@ -3,26 +3,28 @@ package main
 import (
 	"slices"
 	"time"
+
+	"go-mod.ewintr.nl/planner/sync/item"
 )
 
 type Memory struct {
-	items map[string]Item
+	items map[string]item.Item
 }
 
 func NewMemory() *Memory {
 	return &Memory{
-		items: make(map[string]Item),
+		items: make(map[string]item.Item),
 	}
 }
 
-func (m *Memory) Update(item Item) error {
+func (m *Memory) Update(item item.Item) error {
 	m.items[item.ID] = item
 
 	return nil
 }
 
-func (m *Memory) Updated(kinds []Kind, timestamp time.Time) ([]Item, error) {
-	result := make([]Item, 0)
+func (m *Memory) Updated(kinds []item.Kind, timestamp time.Time) ([]item.Item, error) {
+	result := make([]item.Item, 0)
 
 	for _, i := range m.items {
 		timeOK := timestamp.IsZero() || i.Updated.Equal(timestamp) || i.Updated.After(timestamp)

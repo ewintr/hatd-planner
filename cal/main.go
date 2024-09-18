@@ -6,14 +6,14 @@ import (
 	"time"
 
 	"go-mod.ewintr.nl/planner/sync/client"
-	"go-mod.ewintr.nl/planner/sync/planner"
+	"go-mod.ewintr.nl/planner/sync/item"
 )
 
 func main() {
 	fmt.Println("cal")
 
 	c := client.NewClient("http://localhost:8092", "testKey")
-	items, err := c.Updated([]planner.Kind{planner.KindEvent}, time.Time{})
+	items, err := c.Updated([]item.Kind{item.KindEvent}, time.Time{})
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -21,18 +21,18 @@ func main() {
 
 	fmt.Printf("%+v\n", items)
 
-	i := planner.Item{
+	i := item.Item{
 		ID:      "id-1",
-		Kind:    planner.KindEvent,
+		Kind:    item.KindEvent,
 		Updated: time.Now(),
 		Body:    "body",
 	}
-	if err := c.Update([]planner.Item{i}); err != nil {
+	if err := c.Update([]item.Item{i}); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
-	items, err = c.Updated([]planner.Kind{planner.KindEvent}, time.Time{})
+	items, err = c.Updated([]item.Kind{item.KindEvent}, time.Time{})
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)

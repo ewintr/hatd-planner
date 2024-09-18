@@ -10,6 +10,8 @@ import (
 	"slices"
 	"strings"
 	"time"
+
+	"go-mod.ewintr.nl/planner/sync/item"
 )
 
 type Server struct {
@@ -67,17 +69,17 @@ func (s *Server) SyncGet(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	ks := make([]Kind, 0)
+	ks := make([]item.Kind, 0)
 	ksStr := r.URL.Query().Get("ks")
 	if ksStr != "" {
 		for _, k := range strings.Split(ksStr, ",") {
-			if !slices.Contains(KnownKinds, Kind(k)) {
+			if !slices.Contains(item.KnownKinds, item.Kind(k)) {
 				msg := fmt.Sprintf("unknown kind: %s", k)
 				http.Error(w, fmtError(msg), http.StatusBadRequest)
 				s.logger.Info(msg)
 				return
 			}
-			ks = append(ks, Kind(k))
+			ks = append(ks, item.Kind(k))
 		}
 	}
 
@@ -111,7 +113,7 @@ func (s *Server) SyncPost(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	var items []Item
+	var items []item.Item
 	if err := json.Unmarshal(body, &items); err != nil {
 		msg := err.Error()
 		http.Error(w, fmtError(msg), http.StatusBadRequest)
@@ -119,33 +121,33 @@ func (s *Server) SyncPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	for _, item := range items {
-		if item.ID == "" {
+	for _, it := range items {
+		if it.ID == "" {
 			msg := "item without an id"
 			http.Error(w, fmtError(msg), http.StatusBadRequest)
 			s.logger.Info(msg)
 			return
 		}
-		if item.Kind == "" {
-			msg := fmt.Sprintf("item %s does not have a kind", item.ID)
+		if it.Kind == "" {
+			msg := fmt.Sprintf("item %s does not have a kind", it.ID)
 			http.Error(w, fmtError(msg), http.StatusBadRequest)
 			s.logger.Info(msg)
 			return
 		}
-		if !slices.Contains(KnownKinds, item.Kind) {
-			msg := fmt.Sprintf("items %s does not have a know kind", item.ID)
+		if !slices.Contains(item.KnownKinds, it.Kind) {
+			msg := fmt.Sprintf("items %s does not have a know kind", it.ID)
 			http.Error(w, fmtError(msg), http.StatusBadRequest)
 			s.logger.Info(msg)
 			return
 		}
-		if item.Body == "" {
-			msg := fmt.Sprintf(`{"error":"item %s does not have a body"}`, item.ID)
+		if it.Body == "" {
+			msg := fmt.Sprintf(`{"error":"item %s does not have a body"}`, it.ID)
 			http.Error(w, msg, http.StatusBadRequest)
 			s.logger.Info(msg)
 			return
 		}
-		item.Updated = time.Now()
-		if err := s.syncer.Update(item); err != nil {
+		it.Updated = time.Now()
+		if err := s.syncer.Update(it); err != nil {
 			msg := err.Error()
 			http.Error(w, fmtError(msg), http.StatusInternalServerError)
 			s.logger.Error(msg)

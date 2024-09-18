@@ -3,6 +3,8 @@ package main
 import (
 	"testing"
 	"time"
+
+	"go-mod.ewintr.nl/planner/sync/item"
 )
 
 func TestMemoryItem(t *testing.T) {
@@ -11,7 +13,7 @@ func TestMemoryItem(t *testing.T) {
 	mem := NewMemory()
 
 	t.Log("start empty")
-	actItems, actErr := mem.Updated([]Kind{}, time.Time{})
+	actItems, actErr := mem.Updated([]item.Kind{}, time.Time{})
 	if actErr != nil {
 		t.Errorf("exp nil, got %v", actErr)
 	}
@@ -20,11 +22,11 @@ func TestMemoryItem(t *testing.T) {
 	}
 
 	t.Log("add one")
-	t1 := NewItem(Kind("kinda"), "test")
+	t1 := item.NewItem(item.Kind("kinda"), "test")
 	if actErr := mem.Update(t1); actErr != nil {
 		t.Errorf("exp nil, got %v", actErr)
 	}
-	actItems, actErr = mem.Updated([]Kind{}, time.Time{})
+	actItems, actErr = mem.Updated([]item.Kind{}, time.Time{})
 	if actErr != nil {
 		t.Errorf("exp nil, got %v", actErr)
 	}
@@ -38,11 +40,11 @@ func TestMemoryItem(t *testing.T) {
 	before := time.Now()
 
 	t.Log("add second")
-	t2 := NewItem(Kind("kindb"), "test 2")
+	t2 := item.NewItem(item.Kind("kindb"), "test 2")
 	if actErr := mem.Update(t2); actErr != nil {
 		t.Errorf("exp nil, got %v", actErr)
 	}
-	actItems, actErr = mem.Updated([]Kind{}, time.Time{})
+	actItems, actErr = mem.Updated([]item.Kind{}, time.Time{})
 	if actErr != nil {
 		t.Errorf("exp nil, got %v", actErr)
 	}
@@ -56,7 +58,7 @@ func TestMemoryItem(t *testing.T) {
 		t.Errorf("exp %v, got %v", actItems[1].ID, t2.ID)
 	}
 
-	actItems, actErr = mem.Updated([]Kind{}, before)
+	actItems, actErr = mem.Updated([]item.Kind{}, before)
 	if actErr != nil {
 		t.Errorf("exp nil, got %v", actErr)
 	}
@@ -72,7 +74,7 @@ func TestMemoryItem(t *testing.T) {
 	if actErr := mem.Update(t1); actErr != nil {
 		t.Errorf("exp nil, got %v", actErr)
 	}
-	actItems, actErr = mem.Updated([]Kind{}, before)
+	actItems, actErr = mem.Updated([]item.Kind{}, before)
 	if actErr != nil {
 		t.Errorf("exp nil, got %v", actErr)
 	}
@@ -87,7 +89,7 @@ func TestMemoryItem(t *testing.T) {
 	}
 
 	t.Log("select kind")
-	actItems, actErr = mem.Updated([]Kind{"kinda"}, time.Time{})
+	actItems, actErr = mem.Updated([]item.Kind{"kinda"}, time.Time{})
 	if actErr != nil {
 		t.Errorf("exp nil, got %v", actErr)
 	}

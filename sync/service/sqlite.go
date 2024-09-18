@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"go-mod.ewintr.nl/planner/sync/item"
 	_ "modernc.org/sqlite"
 )
 
@@ -49,7 +50,7 @@ func NewSqlite(dbPath string) (*Sqlite, error) {
 	return s, nil
 }
 
-func (s *Sqlite) Update(item Item) error {
+func (s *Sqlite) Update(item item.Item) error {
 	if _, err := s.db.Exec(`
 INSERT INTO items
 (id, kind, updated, deleted, body)
@@ -67,7 +68,7 @@ body=excluded.body`,
 	return nil
 }
 
-func (s *Sqlite) Updated(ks []Kind, t time.Time) ([]Item, error) {
+func (s *Sqlite) Updated(ks []item.Kind, t time.Time) ([]item.Item, error) {
 	query := `
 SELECT id, kind, updated, deleted, body
 FROM items
@@ -93,10 +94,10 @@ WHERE updated > ?`
 		}
 	}
 
-	result := make([]Item, 0)
+	result := make([]item.Item, 0)
 	defer rows.Close()
 	for rows.Next() {
-		var item Item
+		var item item.Item
 		if err := rows.Scan(&item.ID, &item.Kind, &item.Updated, &item.Deleted, &item.Body); err != nil {
 			return nil, fmt.Errorf("%w: %v", ErrSqliteFailure, err)
 		}

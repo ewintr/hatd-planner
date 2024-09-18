@@ -9,6 +9,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"go-mod.ewintr.nl/planner/sync/item"
 )
 
 type Client struct {
@@ -27,7 +29,7 @@ func NewClient(url, apiKey string) *Client {
 	}
 }
 
-func (c *Client) Update(items []Item) error {
+func (c *Client) Update(items []item.Item) error {
 	body, err := json.Marshal(items)
 	if err != nil {
 		return fmt.Errorf("could not marhal body: %v", err)
@@ -49,7 +51,7 @@ func (c *Client) Update(items []Item) error {
 	return nil
 }
 
-func (c *Client) Updated(ks []Kind, ts time.Time) ([]Item, error) {
+func (c *Client) Updated(ks []item.Kind, ts time.Time) ([]item.Item, error) {
 	ksStr := make([]string, 0, len(ks))
 	for _, k := range ks {
 		ksStr = append(ksStr, string(k))
@@ -78,7 +80,7 @@ func (c *Client) Updated(ks []Kind, ts time.Time) ([]Item, error) {
 		return nil, fmt.Errorf("could not read response body: %v", err)
 	}
 
-	var items []Item
+	var items []item.Item
 	if err := json.Unmarshal(body, &items); err != nil {
 		return nil, fmt.Errorf("could not unmarshal response body: %v", err)
 	}

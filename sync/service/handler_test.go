@@ -14,6 +14,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"go-mod.ewintr.nl/planner/sync/item"
 )
 
 func TestServerServeHTTP(t *testing.T) {
@@ -56,10 +58,10 @@ func TestSyncGet(t *testing.T) {
 	now := time.Now()
 	mem := NewMemory()
 
-	items := []Item{
-		{ID: "id-0", Kind: KindEvent, Updated: now.Add(-10 * time.Minute)},
-		{ID: "id-1", Kind: KindEvent, Updated: now.Add(-5 * time.Minute)},
-		{ID: "id-2", Kind: KindTask, Updated: now.Add(time.Minute)},
+	items := []item.Item{
+		{ID: "id-0", Kind: item.KindEvent, Updated: now.Add(-10 * time.Minute)},
+		{ID: "id-1", Kind: item.KindEvent, Updated: now.Add(-5 * time.Minute)},
+		{ID: "id-2", Kind: item.KindTask, Updated: now.Add(time.Minute)},
 	}
 
 	for _, item := range items {
@@ -76,7 +78,7 @@ func TestSyncGet(t *testing.T) {
 		ts        time.Time
 		ks        []string
 		expStatus int
-		expItems  []Item
+		expItems  []item.Item
 	}{
 		{
 			name:      "full",
@@ -87,13 +89,13 @@ func TestSyncGet(t *testing.T) {
 			name:      "new",
 			ts:        now.Add(-6 * time.Minute),
 			expStatus: http.StatusOK,
-			expItems:  []Item{items[1], items[2]},
+			expItems:  []item.Item{items[1], items[2]},
 		},
 		{
 			name:      "kind",
-			ks:        []string{string(KindTask)},
+			ks:        []string{string(item.KindTask)},
 			expStatus: http.StatusOK,
-			expItems:  []Item{items[2]},
+			expItems:  []item.Item{items[2]},
 		},
 		{
 			name:      "unknown kind",
@@ -121,7 +123,7 @@ func TestSyncGet(t *testing.T) {
 				return
 			}
 
-			var actItems []Item
+			var actItems []item.Item
 			actBody, err := io.ReadAll(res.Result().Body)
 			if err != nil {
 				t.Errorf("exp nil, got %v", err)
@@ -155,7 +157,7 @@ func TestSyncPost(t *testing.T) {
 		name      string
 		reqBody   []byte
 		expStatus int
-		expItems  []Item
+		expItems  []item.Item
 	}{
 		{
 			name:      "empty",
@@ -180,9 +182,9 @@ func TestSyncPost(t *testing.T) {
   {"id":"id-2","kind":"event","updated":"2024-09-06T08:12:00Z","deleted":false,"body":"item2"}
 ]`),
 			expStatus: http.StatusNoContent,
-			expItems: []Item{
-				{ID: "id-1", Kind: KindEvent, Updated: time.Date(2024, 9, 6, 8, 0, 0, 0, time.UTC)},
-				{ID: "id-2", Kind: KindEvent, Updated: time.Date(2024, 9, 6, 12, 0, 0, 0, time.UTC)},
+			expItems: []item.Item{
+				{ID: "id-1", Kind: item.KindEvent, Updated: time.Date(2024, 9, 6, 8, 0, 0, 0, time.UTC)},
+				{ID: "id-2", Kind: item.KindEvent, Updated: time.Date(2024, 9, 6, 12, 0, 0, 0, time.UTC)},
 			},
 		},
 	} {
@@ -201,7 +203,7 @@ func TestSyncPost(t *testing.T) {
 				t.Errorf("exp %v, got %v", tc.expStatus, res.Result().StatusCode)
 			}
 
-			actItems, err := mem.Updated([]Kind{}, time.Time{})
+			actItems, err := mem.Updated([]item.Kind{}, time.Time{})
 			if err != nil {
 				t.Errorf("exp nil, git %v", err)
 			}
