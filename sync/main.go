@@ -8,6 +8,8 @@ import (
 	"os/signal"
 	"strconv"
 	"syscall"
+
+	"go-mod.ewintr.nl/sync/service"
 )
 
 func main() {
@@ -27,7 +29,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	repo, err := NewSqlite(dbPath)
+	repo, err := service.NewSqlite(dbPath)
 	if err != nil {
 		fmt.Printf("could not open sqlite db: %s", err.Error())
 		os.Exit(1)
@@ -41,7 +43,7 @@ func main() {
 	})
 
 	address := fmt.Sprintf(":%d", port)
-	srv := NewServer(repo, apiKey, logger)
+	srv := service.NewServer(repo, apiKey, logger)
 	go http.ListenAndServe(address, srv)
 
 	logger.Info("service started")
