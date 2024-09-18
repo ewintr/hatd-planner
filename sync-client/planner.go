@@ -1,4 +1,4 @@
-package planner
+package client
 
 import (
 	"time"

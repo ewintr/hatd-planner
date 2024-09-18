@@ -1,4 +1,4 @@
-package planner
+package main
 
 import (
 	"database/sql"
