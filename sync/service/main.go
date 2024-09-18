@@ -6,28 +6,23 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"strconv"
 	"syscall"
 )
 
 func main() {
-	dbPath := os.Getenv("PLANNER_DB_PATH")
-	if dbPath == "" {
-		fmt.Println("PLANNER_DB_PATH is empty")
-		os.Exit(1)
-	}
-	port, err := strconv.Atoi(os.Getenv("PLANNER_PORT"))
-	if err != nil {
-		fmt.Println("PLANNER_PORT env is not an integer")
-		os.Exit(1)
-	}
+	port := os.Getenv("PLANNER_PORT")
 	apiKey := os.Getenv("PLANNER_API_KEY")
 	if apiKey == "" {
 		fmt.Println("PLANNER_API_KEY is empty")
 		os.Exit(1)
 	}
 
-	repo, err := NewSqlite(dbPath)
+	dbHost := os.Getenv("PLANNER_DB_HOST")
+	dbPort := os.Getenv("PLANNER_DB_PORT")
+	dbName := os.Getenv("PLANNER_DB_NAME")
+	dbUser := os.Getenv("PLANNER_DB_USER")
+	dbPassword := os.Getenv("PLANNER_DB_PASSWORD")
+	repo, err := NewPostgres(dbHost, dbPort, dbName, dbUser, dbPassword)
 	if err != nil {
 		fmt.Printf("could not open sqlite db: %s", err.Error())
 		os.Exit(1)
@@ -35,14 +30,15 @@ func main() {
 
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	logger.Info("configuration", "configuration", map[string]string{
-		"dbPath": dbPath,
-		"port":   fmt.Sprintf("%d", port),
-		"apiKey": "***",
+		"port":   port,
+		"dbHost": dbHost,
+		"dbPort": dbPort,
+		"dbName": dbName,
+		"dbUser": dbUser,
 	})
 
-	address := fmt.Sprintf(":%d", port)
 	srv := NewServer(repo, apiKey, logger)
-	go http.ListenAndServe(address, srv)
+	go http.ListenAndServe(fmt.Sprintf(":%s", port), srv)
 
 	logger.Info("service started")
 
