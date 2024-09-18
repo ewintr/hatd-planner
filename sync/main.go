@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"syscall"
 
-	"go-mod.ewintr.nl/sync/service"
+	"go-mod.ewintr.nl/planner/sync/service"
 )
 
 func main() {
