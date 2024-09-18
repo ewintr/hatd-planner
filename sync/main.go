@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"syscall"
 
-	"go-mod.ewintr.nl/planner/sync/service"
+	"go-mod.ewintr.nl/planner/sync/planner"
 )
 
 func main() {
@@ -29,7 +29,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	repo, err := service.NewSqlite(dbPath)
+	repo, err := planner.NewSqlite(dbPath)
 	if err != nil {
 		fmt.Printf("could not open sqlite db: %s", err.Error())
 		os.Exit(1)
@@ -43,7 +43,7 @@ func main() {
 	})
 
 	address := fmt.Sprintf(":%d", port)
-	srv := service.NewServer(repo, apiKey, logger)
+	srv := planner.NewServer(repo, apiKey, logger)
 	go http.ListenAndServe(address, srv)
 
 	logger.Info("service started")
