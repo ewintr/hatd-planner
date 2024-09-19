@@ -1,6 +1,7 @@
 package main
 
 import (
+	"sort"
 	"testing"
 	"time"
 
@@ -81,6 +82,14 @@ func TestMemoryItem(t *testing.T) {
 	if len(actItems) != 2 {
 		t.Errorf("exp 2, gor %d", len(actItems))
 	}
+	sort.Slice(actItems, func(i, j int) bool {
+		return actItems[i].ID < actItems[j].ID
+	})
+	expItems := []item.Item{t1, t2}
+	sort.Slice(expItems, func(i, j int) bool {
+		return expItems[i].ID < actItems[j].ID
+	})
+
 	if actItems[0].ID != t1.ID {
 		t.Errorf("exp %v, got %v", actItems[0].ID, t1.ID)
 	}
