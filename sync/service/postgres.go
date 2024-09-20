@@ -8,7 +8,7 @@ import (
 	"time"
 
 	_ "github.com/lib/pq"
-	"go-mod.ewintr.nl/planner/sync/item"
+	"go-mod.ewintr.nl/planner/item"
 )
 
 const (

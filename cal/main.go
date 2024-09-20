@@ -5,8 +5,8 @@ import (
 	"os"
 	"time"
 
+	"go-mod.ewintr.nl/planner/item"
 	"go-mod.ewintr.nl/planner/sync/client"
-	"go-mod.ewintr.nl/planner/sync/item"
 )
 
 func main() {

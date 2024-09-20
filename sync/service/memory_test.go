@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"go-mod.ewintr.nl/planner/sync/item"
+	"go-mod.ewintr.nl/planner/item"
 )
 
 func TestMemoryItem(t *testing.T) {
@@ -87,14 +87,14 @@ func TestMemoryItem(t *testing.T) {
 	})
 	expItems := []item.Item{t1, t2}
 	sort.Slice(expItems, func(i, j int) bool {
-		return expItems[i].ID < actItems[j].ID
+		return expItems[i].ID < expItems[j].ID
 	})
 
-	if actItems[0].ID != t1.ID {
-		t.Errorf("exp %v, got %v", actItems[0].ID, t1.ID)
+	if actItems[0].ID != expItems[0].ID {
+		t.Errorf("exp %v, got %v", actItems[0].ID, expItems[0].ID)
 	}
-	if actItems[1].ID != t2.ID {
-		t.Errorf("exp %v, got %v", actItems[1].ID, t2.ID)
+	if actItems[1].ID != expItems[1].ID {
+		t.Errorf("exp %v, got %v", actItems[1].ID, expItems[1].ID)
 	}
 
 	t.Log("select kind")
