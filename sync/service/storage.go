@@ -4,7 +4,7 @@ import (
 	"errors"
 	"time"
 
-	"go-mod.ewintr.nl/planner/sync/item"
+	"go-mod.ewintr.nl/planner/item"
 )
 
 var (

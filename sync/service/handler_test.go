@@ -15,7 +15,7 @@ import (
 	"testing"
 	"time"
 
-	"go-mod.ewintr.nl/planner/sync/item"
+	"go-mod.ewintr.nl/planner/item"
 )
 
 func TestServerServeHTTP(t *testing.T) {
