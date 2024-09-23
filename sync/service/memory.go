@@ -2,6 +2,7 @@ package main
 
 import (
 	"slices"
+	"sync"
 	"time"
 
 	"go-mod.ewintr.nl/planner/item"
@@ -9,6 +10,7 @@ import (
 
 type Memory struct {
 	items map[string]item.Item
+	mutex sync.RWMutex
 }
 
 func NewMemory() *Memory {
@@ -18,12 +20,18 @@ func NewMemory() *Memory {
 }
 
 func (m *Memory) Update(item item.Item) error {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
 	m.items[item.ID] = item
 
 	return nil
 }
 
 func (m *Memory) Updated(kinds []item.Kind, timestamp time.Time) ([]item.Item, error) {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+
 	result := make([]item.Item, 0)
 
 	for _, i := range m.items {
