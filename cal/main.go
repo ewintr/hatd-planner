@@ -6,12 +6,10 @@ import (
 	"path/filepath"
 	"time"
 
-	"go-mod.ewintr.nl/planner/item"
 	"gopkg.in/yaml.v3"
 )
 
 func main() {
-	fmt.Println("cal")
 	confPath, err := os.UserConfigDir()
 	if err != nil {
 		fmt.Printf("could not get config path: %s\n", err)
@@ -22,7 +20,6 @@ func main() {
 		fmt.Printf("could not open config file: %s\n", err)
 		os.Exit(1)
 	}
-	fmt.Printf("conf: %+v\n", conf)
 
 	repo, err := NewSqlite(conf.DBPath)
 	if err != nil {
@@ -30,26 +27,45 @@ func main() {
 		os.Exit(1)
 	}
 
-	one := item.Event{
-		ID: "a",
-		EventBody: item.EventBody{
-			Title: "title",
-			Start: time.Now(),
-			End:   time.Now().Add(-5 * time.Second),
-		},
-	}
-	if err := repo.Store(one); err != nil {
-		fmt.Println(err)
+	if len(os.Args) < 2 {
+		fmt.Println("need a sub command")
 		os.Exit(1)
 	}
 
-	all, err := repo.FindAll()
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+	switch os.Args[1] {
+	case "list":
+		all, err := repo.FindAll()
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		for _, e := range all {
+			fmt.Printf("%s\t%s\t%s\t%s\n", e.ID, e.Title, e.Start.Format(time.DateTime), e.End.Format(time.DateTime))
+		}
+	default:
+		fmt.Printf("unkown command %s\n", os.Args[1])
 	}
 
-	fmt.Printf("all: %+v\n", all)
+	// one := item.Event{
+	// 	ID: "a",
+	// 	EventBody: item.EventBody{
+	// 		Title: "title",
+	// 		Start: time.Now(),
+	// 		End:   time.Now().Add(-5 * time.Second),
+	// 	},
+	// }
+	// if err := repo.Store(one); err != nil {
+	// 	fmt.Println(err)
+	// 	os.Exit(1)
+	// }
+
+	// all, err := repo.FindAll()
+	// if err != nil {
+	// 	fmt.Println(err)
+	// 	os.Exit(1)
+	// }
+
+	// fmt.Printf("all: %+v\n", all)
 
 	// c := client.NewClient("http://localhost:8092", "testKey")
 	// items, err := c.Updated([]item.Kind{item.KindEvent}, time.Time{})
