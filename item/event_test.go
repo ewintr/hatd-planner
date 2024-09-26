@@ -11,6 +11,10 @@ import (
 func TestNewEvent(t *testing.T) {
 	t.Parallel()
 
+	oneHour, err := time.ParseDuration("1h")
+	if err != nil {
+		t.Errorf("exp nil, got %v", err)
+	}
 	for _, tc := range []struct {
 		name     string
 		it       item.Item
@@ -25,7 +29,7 @@ func TestNewEvent(t *testing.T) {
 				Body: `{
   "title":"title",
   "start":"2024-09-20T08:00:00Z",
-  "end":"2024-09-20T10:00:00Z" 
+  "duration":"1h" 
 }`,
 			},
 			expErr: true,
@@ -47,15 +51,15 @@ func TestNewEvent(t *testing.T) {
 				Body: `{
   "title":"title",
   "start":"2024-09-20T08:00:00Z",
-  "end":"2024-09-20T10:00:00Z" 
+  "duration":"1h" 
 }`,
 			},
 			expEvent: item.Event{
 				ID: "a",
 				EventBody: item.EventBody{
-					Title: "title",
-					Start: time.Date(2024, 9, 20, 8, 0, 0, 0, time.UTC),
-					End:   time.Date(2024, 9, 20, 10, 0, 0, 0, time.UTC),
+					Title:    "title",
+					Start:    time.Date(2024, 9, 20, 8, 0, 0, 0, time.UTC),
+					Duration: oneHour,
 				},
 			},
 		},
@@ -78,6 +82,10 @@ func TestNewEvent(t *testing.T) {
 func TestEventItem(t *testing.T) {
 	t.Parallel()
 
+	oneHour, err := time.ParseDuration("1h")
+	if err != nil {
+		t.Errorf("exp nil, got %v", err)
+	}
 	for _, tc := range []struct {
 		name    string
 		event   item.Event
@@ -89,7 +97,7 @@ func TestEventItem(t *testing.T) {
 			expItem: item.Item{
 				Kind:    item.KindEvent,
 				Updated: time.Time{},
-				Body:    `{"start":"0001-01-01T00:00:00Z","end":"0001-01-01T00:00:00Z","title":""}`,
+				Body:    `{"start":"0001-01-01T00:00:00Z","duration":"0s","title":""}`,
 			},
 		},
 		{
@@ -97,16 +105,16 @@ func TestEventItem(t *testing.T) {
 			event: item.Event{
 				ID: "a",
 				EventBody: item.EventBody{
-					Title: "title",
-					Start: time.Date(2024, 9, 23, 8, 0, 0, 0, time.UTC),
-					End:   time.Date(2024, 9, 23, 10, 0, 0, 0, time.UTC),
+					Title:    "title",
+					Start:    time.Date(2024, 9, 23, 8, 0, 0, 0, time.UTC),
+					Duration: oneHour,
 				},
 			},
 			expItem: item.Item{
 				ID:      "a",
 				Kind:    item.KindEvent,
 				Updated: time.Time{},
-				Body:    `{"start":"2024-09-23T08:00:00Z","end":"2024-09-23T10:00:00Z","title":"title"}`,
+				Body:    `{"start":"2024-09-23T08:00:00Z","duration":"1h0m0s","title":"title"}`,
 			},
 		},
 	} {

@@ -7,22 +7,47 @@ import (
 )
 
 type EventBody struct {
-	Title string    `json:"title"`
-	Start time.Time `json:"start"`
-	End   time.Time `json:"end"`
+	Title    string        `json:"title"`
+	Start    time.Time     `json:"start"`
+	Duration time.Duration `json:"duration"`
 }
 
 func (e EventBody) MarshalJSON() ([]byte, error) {
 	type Alias EventBody
 	return json.Marshal(&struct {
-		Start string `json:"start"`
-		End   string `json:"end"`
+		Start    string `json:"start"`
+		Duration string `json:"duration"`
 		*Alias
 	}{
-		Start: e.Start.UTC().Format(time.RFC3339),
-		End:   e.End.UTC().Format(time.RFC3339),
-		Alias: (*Alias)(&e),
+		Start:    e.Start.UTC().Format(time.RFC3339),
+		Duration: e.Duration.String(),
+		Alias:    (*Alias)(&e),
 	})
+}
+
+func (e *EventBody) UnmarshalJSON(data []byte) error {
+	type Alias EventBody
+	aux := &struct {
+		Start    string `json:"start"`
+		Duration string `json:"duration"`
+		*Alias
+	}{
+		Alias: (*Alias)(e),
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+
+	var err error
+	if e.Start, err = time.Parse(time.RFC3339, aux.Start); err != nil {
+		return err
+	}
+
+	if e.Duration, err = time.ParseDuration(aux.Duration); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 type Event struct {
@@ -47,9 +72,9 @@ func NewEvent(i Item) (Event, error) {
 
 func (e Event) Item() (Item, error) {
 	body, err := json.Marshal(EventBody{
-		Title: e.Title,
-		Start: e.Start,
-		End:   e.End,
+		Title:    e.Title,
+		Start:    e.Start,
+		Duration: e.Duration,
 	})
 	if err != nil {
 		return Item{}, fmt.Errorf("could not marshal event to json")

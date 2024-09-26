@@ -40,7 +40,7 @@ func main() {
 			os.Exit(1)
 		}
 		for _, e := range all {
-			fmt.Printf("%s\t%s\t%s\t%s\n", e.ID, e.Title, e.Start.Format(time.DateTime), e.End.Format(time.DateTime))
+			fmt.Printf("%s\t%s\t%s\t%s\n", e.ID, e.Title, e.Start.Format(time.DateTime), e.Duration.String())
 		}
 	default:
 		fmt.Printf("unkown command %s\n", os.Args[1])

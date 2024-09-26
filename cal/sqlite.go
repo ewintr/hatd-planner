@@ -14,7 +14,7 @@ const (
 )
 
 var migrations = []string{
-	`CREATE TABLE events ("id" TEXT UNIQUE, "title" TEXT, "start" TIMESTAMP, "end" TIMESTAMP)`,
+	`CREATE TABLE events ("id" TEXT UNIQUE, "title" TEXT, "start" TIMESTAMP, "duration" TEXT)`,
 	`PRAGMA journal_mode=WAL`,
 	`PRAGMA synchronous=NORMAL`,
 	`PRAGMA cache_size=2000`,
@@ -51,16 +51,16 @@ func NewSqlite(dbPath string) (*Sqlite, error) {
 func (s *Sqlite) Store(event item.Event) error {
 	if _, err := s.db.Exec(`
 INSERT INTO events
-(id, title, start, end)
+(id, title, start, duration)
 VALUES
 (?, ?, ?, ?)
 ON CONFLICT(id) DO UPDATE
 SET
 title=?,
 start=?,
-end=?`,
-		event.ID, event.Title, event.Start.Format(timestampFormat), event.End.Format(timestampFormat),
-		event.Title, event.Start.Format(timestampFormat), event.End.Format(timestampFormat)); err != nil {
+duration=?`,
+		event.ID, event.Title, event.Start.Format(timestampFormat), event.Duration.String(),
+		event.Title, event.Start.Format(timestampFormat), event.Duration.String()); err != nil {
 		return fmt.Errorf("%w: %v", ErrSqliteFailure, err)
 	}
 	return nil
@@ -69,9 +69,9 @@ end=?`,
 func (s *Sqlite) Find(id string) (item.Event, error) {
 	var event item.Event
 	err := s.db.QueryRow(`
-SELECT id, title, start, end
+SELECT id, title, start, duration
 FROM events
-WHERE id = ?`, id).Scan(&event.ID, &event.Title, &event.Start, &event.End)
+WHERE id = ?`, id).Scan(&event.ID, &event.Title, &event.Start, &event.Duration)
 
 	if err == sql.ErrNoRows {
 		return event, fmt.Errorf("event not found: %w", err)
@@ -85,7 +85,7 @@ WHERE id = ?`, id).Scan(&event.ID, &event.Title, &event.Start, &event.End)
 
 func (s *Sqlite) FindAll() ([]item.Event, error) {
 	rows, err := s.db.Query(`
-SELECT id, title, start, end
+SELECT id, title, start, duration
 FROM events`)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrSqliteFailure, err)
@@ -95,7 +95,7 @@ FROM events`)
 	defer rows.Close()
 	for rows.Next() {
 		var event item.Event
-		if err := rows.Scan(&event.ID, &event.Title, &event.Start, &event.End); err != nil {
+		if err := rows.Scan(&event.ID, &event.Title, &event.Start, &event.Duration); err != nil {
 			return nil, fmt.Errorf("%w: %v", ErrSqliteFailure, err)
 		}
 		result = append(result, event)
