@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/urfave/cli/v2"
 	"gopkg.in/yaml.v3"
 )
 
@@ -27,23 +28,25 @@ func main() {
 		os.Exit(1)
 	}
 
-	if len(os.Args) < 2 {
-		fmt.Println("need a sub command")
-		os.Exit(1)
+	app := &cli.App{
+		Name:  "list",
+		Usage: "list all events",
+		Action: func(*cli.Context) error {
+			all, err := repo.FindAll()
+			if err != nil {
+				return err
+			}
+			for _, e := range all {
+				fmt.Printf("%s\t%s\t%s\t%s\n", e.ID, e.Title, e.Start.Format(time.DateTime), e.Duration.String())
+			}
+
+			return nil
+		},
 	}
 
-	switch os.Args[1] {
-	case "list":
-		all, err := repo.FindAll()
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-		for _, e := range all {
-			fmt.Printf("%s\t%s\t%s\t%s\n", e.ID, e.Title, e.Start.Format(time.DateTime), e.Duration.String())
-		}
-	default:
-		fmt.Printf("unkown command %s\n", os.Args[1])
+	if err := app.Run(os.Args); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
 	}
 
 	// one := item.Event{
