@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"time"
 
 	"go-mod.ewintr.nl/planner/item"
 	_ "modernc.org/sqlite"
@@ -68,17 +69,22 @@ duration=?`,
 
 func (s *Sqlite) Find(id string) (item.Event, error) {
 	var event item.Event
+	var durStr string
 	err := s.db.QueryRow(`
 SELECT id, title, start, duration
 FROM events
-WHERE id = ?`, id).Scan(&event.ID, &event.Title, &event.Start, &event.Duration)
-
-	if err == sql.ErrNoRows {
-		return event, fmt.Errorf("event not found: %w", err)
+WHERE id = ?`, id).Scan(&event.ID, &event.Title, &event.Start, &durStr)
+	switch {
+	case err == sql.ErrNoRows:
+		return item.Event{}, fmt.Errorf("event not found: %w", err)
+	case err != nil:
+		return item.Event{}, fmt.Errorf("%w: %v", ErrSqliteFailure, err)
 	}
+	dur, err := time.ParseDuration(durStr)
 	if err != nil {
-		return event, fmt.Errorf("%w: %v", ErrSqliteFailure, err)
+		return item.Event{}, fmt.Errorf("%w: %v", err)
 	}
+	event.Duration = dur
 
 	return event, nil
 }
@@ -95,9 +101,15 @@ FROM events`)
 	defer rows.Close()
 	for rows.Next() {
 		var event item.Event
-		if err := rows.Scan(&event.ID, &event.Title, &event.Start, &event.Duration); err != nil {
+		var durStr string
+		if err := rows.Scan(&event.ID, &event.Title, &event.Start, &durStr); err != nil {
 			return nil, fmt.Errorf("%w: %v", ErrSqliteFailure, err)
 		}
+		dur, err := time.ParseDuration(durStr)
+		if err != nil {
+			return nil, fmt.Errorf("%w: %v", err)
+		}
+		event.Duration = dur
 		result = append(result, event)
 	}
 
