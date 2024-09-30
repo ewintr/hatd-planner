@@ -1,4 +1,4 @@
-package main
+package storage
 
 import (
 	"database/sql"
@@ -82,7 +82,7 @@ WHERE id = ?`, id).Scan(&event.ID, &event.Title, &event.Start, &durStr)
 	}
 	dur, err := time.ParseDuration(durStr)
 	if err != nil {
-		return item.Event{}, fmt.Errorf("%w: %v", err)
+		return item.Event{}, fmt.Errorf("%w: %v", ErrSqliteFailure, err)
 	}
 	event.Duration = dur
 
@@ -107,7 +107,7 @@ FROM events`)
 		}
 		dur, err := time.ParseDuration(durStr)
 		if err != nil {
-			return nil, fmt.Errorf("%w: %v", err)
+			return nil, fmt.Errorf("%w: %v", ErrSqliteFailure, err)
 		}
 		event.Duration = dur
 		result = append(result, event)

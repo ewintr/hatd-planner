@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/urfave/cli/v2"
-	"go-mod.ewintr.nl/planner/item"
+	"go-mod.ewintr.nl/planner/plan/command"
+	"go-mod.ewintr.nl/planner/plan/storage"
 	"gopkg.in/yaml.v3"
 )
 
@@ -23,7 +23,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	repo, err := NewSqlite(conf.DBPath)
+	repo, err := storage.NewSqlite(conf.DBPath)
 	if err != nil {
 		fmt.Printf("could not open db file: %s\n", err)
 		os.Exit(1)
@@ -33,42 +33,8 @@ func main() {
 		Name:  "plan",
 		Usage: "Plan your day with events",
 		Commands: []*cli.Command{
-			{
-				Name:  "list",
-				Usage: "List everything",
-				Action: func(cCtx *cli.Context) error {
-					return List(repo)
-				},
-			},
-			{
-				Name:  "add",
-				Usage: "Add a new event",
-				Flags: []cli.Flag{
-					&cli.StringFlag{
-						Name:    "name",
-						Aliases: []string{"n"},
-						Usage:   "The event that will happen",
-					},
-					&cli.StringFlag{
-						Name:    "date",
-						Aliases: []string{"d"},
-						Usage:   "The date, in YYYY-MM-DD format",
-					},
-					&cli.StringFlag{
-						Name:    "time",
-						Aliases: []string{"t"},
-						Usage:   "The time, in HH:MM format. If omitted, the event will last the whole day",
-					},
-					&cli.StringFlag{
-						Name:    "for",
-						Aliases: []string{"f"},
-						Usage:   "The duration, in show format (e.g. 1h30m)",
-					},
-				},
-				Action: func(cCtx *cli.Context) error {
-					return Add(cCtx, repo)
-				},
-			},
+			command.NewAddCmd(repo),
+			command.NewListCmd(repo),
 		},
 	}
 
@@ -112,39 +78,6 @@ func main() {
 	// }
 
 	// fmt.Printf("%+v\n", items)
-}
-
-func List(repo EventRepo) error {
-	all, err := repo.FindAll()
-	if err != nil {
-		return err
-	}
-	for _, e := range all {
-		fmt.Printf("%s\t%s\t%s\t%s\n", e.ID, e.Title, e.Start.Format(time.DateTime), e.Duration.String())
-	}
-
-	return nil
-}
-
-func Add(cCtx *cli.Context, repo EventRepo) error {
-	desc := cCtx.String("name")
-	date, err := time.Parse("2006-01-02", cCtx.String("date"))
-	if err != nil {
-		return fmt.Errorf("could not parse date: %v", err)
-	}
-
-	one := item.Event{
-		ID: "a",
-		EventBody: item.EventBody{
-			Title: desc,
-			Start: date,
-		},
-	}
-	if err := repo.Store(one); err != nil {
-		return fmt.Errorf("could not store event: %v", err)
-	}
-
-	return nil
 }
 
 type Configuration struct {
