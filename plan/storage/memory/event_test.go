@@ -1,4 +1,4 @@
-package storage
+package memory
 
 import (
 	"testing"
@@ -7,10 +7,10 @@ import (
 	"go-mod.ewintr.nl/planner/item"
 )
 
-func TestMemory(t *testing.T) {
+func TestEvent(t *testing.T) {
 	t.Parallel()
 
-	mem := NewMemory()
+	mem := NewEvent()
 
 	t.Log("empty")
 	actEvents, actErr := mem.FindAll()

@@ -7,7 +7,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"go-mod.ewintr.nl/planner/item"
 	"go-mod.ewintr.nl/planner/plan/command"
-	"go-mod.ewintr.nl/planner/plan/storage"
+	"go-mod.ewintr.nl/planner/plan/storage/memory"
 )
 
 func TestAdd(t *testing.T) {
@@ -104,21 +104,34 @@ func TestAdd(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			mem := storage.NewMemory()
-			actErr := command.Add(tc.args["name"], tc.args["on"], tc.args["at"], tc.args["for"], mem) != nil
+			eventRepo := memory.NewEvent()
+			localRepo := memory.NewLocalID()
+			actErr := command.Add(localRepo, eventRepo, tc.args["name"], tc.args["on"], tc.args["at"], tc.args["for"]) != nil
 			if tc.expErr != actErr {
 				t.Errorf("exp %v, got %v", tc.expErr, actErr)
 			}
 			if tc.expErr {
 				return
 			}
-			actEvents, err := mem.FindAll()
+			actEvents, err := eventRepo.FindAll()
 			if err != nil {
 				t.Errorf("exp nil, got %v", err)
 			}
 			if len(actEvents) != 1 {
 				t.Errorf("exp 1, got %d", len(actEvents))
 			}
+
+			actLocalIDs, err := localRepo.FindAll()
+			if err != nil {
+				t.Errorf("exp nil, got %v", err)
+			}
+			if len(actLocalIDs) != 1 {
+				t.Errorf("exp 1, got %v", len(actLocalIDs))
+			}
+			if _, ok := actLocalIDs[actEvents[0].ID]; !ok {
+				t.Errorf("exp true, got %v", ok)
+			}
+
 			if actEvents[0].ID == "" {
 				t.Errorf("exp string not te be empty")
 			}

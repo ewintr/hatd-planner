@@ -1,10 +1,62 @@
 package storage
 
-import "go-mod.ewintr.nl/planner/item"
+import (
+	"errors"
+	"sort"
 
-type EventRepo interface {
+	"go-mod.ewintr.nl/planner/item"
+)
+
+var (
+	ErrNotFound = errors.New("not found")
+)
+
+type LocalID interface {
+	FindAll() (map[string]int, error)
+	Next() (int, error)
+	Store(id string, localID int) error
+	Delete(id string) error
+}
+
+type Event interface {
 	Store(event item.Event) error
 	Find(id string) (item.Event, error)
 	FindAll() ([]item.Event, error)
 	Delete(id string) error
+}
+
+func NextLocalID(used []int) int {
+	if len(used) == 0 {
+		return 1
+	}
+
+	sort.Ints(used)
+	usedMax := 1
+	for _, u := range used {
+		if u > usedMax {
+			usedMax = u
+		}
+	}
+
+	var limit int
+	for limit = 1; limit <= len(used) || limit < usedMax; limit *= 10 {
+	}
+
+	newId := used[len(used)-1] + 1
+	if newId < limit {
+		return newId
+	}
+
+	usedMap := map[int]bool{}
+	for _, u := range used {
+		usedMap[u] = true
+	}
+
+	for i := 1; i < limit; i++ {
+		if _, ok := usedMap[i]; !ok {
+			return i
+		}
+	}
+
+	return limit
 }

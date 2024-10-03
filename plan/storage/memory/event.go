@@ -1,4 +1,4 @@
-package storage
+package memory
 
 import (
 	"errors"
@@ -8,18 +8,18 @@ import (
 	"go-mod.ewintr.nl/planner/item"
 )
 
-type Memory struct {
+type Event struct {
 	events map[string]item.Event
 	mutex  sync.RWMutex
 }
 
-func NewMemory() *Memory {
-	return &Memory{
+func NewEvent() *Event {
+	return &Event{
 		events: make(map[string]item.Event),
 	}
 }
 
-func (r *Memory) Find(id string) (item.Event, error) {
+func (r *Event) Find(id string) (item.Event, error) {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
 
@@ -30,7 +30,7 @@ func (r *Memory) Find(id string) (item.Event, error) {
 	return event, nil
 }
 
-func (r *Memory) FindAll() ([]item.Event, error) {
+func (r *Event) FindAll() ([]item.Event, error) {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
 
@@ -45,15 +45,16 @@ func (r *Memory) FindAll() ([]item.Event, error) {
 	return events, nil
 }
 
-func (r *Memory) Store(e item.Event) error {
+func (r *Event) Store(e item.Event) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
 	r.events[e.ID] = e
+
 	return nil
 }
 
-func (r *Memory) Delete(id string) error {
+func (r *Event) Delete(id string) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -61,5 +62,6 @@ func (r *Memory) Delete(id string) error {
 		return errors.New("event not found")
 	}
 	delete(r.events, id)
+
 	return nil
 }

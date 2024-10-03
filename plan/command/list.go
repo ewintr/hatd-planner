@@ -13,22 +13,29 @@ var ListCmd = &cli.Command{
 	Usage: "List everything",
 }
 
-func NewListCmd(repo storage.EventRepo) *cli.Command {
-	ListCmd.Action = NewListAction(repo)
+func NewListCmd(localRepo storage.LocalID, eventRepo storage.Event) *cli.Command {
+	ListCmd.Action = func(cCtx *cli.Context) error {
+		return List(localRepo, eventRepo)
+	}
 	return ListCmd
 }
 
-func NewListAction(repo storage.EventRepo) func(*cli.Context) error {
-	return func(cCtx *cli.Context) error {
-		all, err := repo.FindAll()
-		if err != nil {
-			return err
+func List(localRepo storage.LocalID, eventRepo storage.Event) error {
+	localIDs, err := localRepo.FindAll()
+	if err != nil {
+		return fmt.Errorf("could not get local ids: %v", err)
+	}
+	all, err := eventRepo.FindAll()
+	if err != nil {
+		return err
+	}
+	for _, e := range all {
+		lid, ok := localIDs[e.ID]
+		if !ok {
+			return fmt.Errorf("could not find local id for %s", e.ID)
 		}
-		for _, e := range all {
-			fmt.Printf("%s\t%s\t%s\t%s\n", e.ID, e.Title, e.Start.Format(time.DateTime), e.Duration.String())
-		}
-
-		return nil
+		fmt.Printf("%s\t%d\t%s\t%s\t%s\n", e.ID, lid, e.Title, e.Start.Format(time.DateTime), e.Duration.String())
 	}
 
+	return nil
 }

@@ -7,7 +7,7 @@ import (
 
 	"github.com/urfave/cli/v2"
 	"go-mod.ewintr.nl/planner/plan/command"
-	"go-mod.ewintr.nl/planner/plan/storage"
+	"go-mod.ewintr.nl/planner/plan/storage/sqlite"
 	"gopkg.in/yaml.v3"
 )
 
@@ -23,7 +23,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	repo, err := storage.NewSqlite(conf.DBPath)
+	localIDRepo, eventRepo, err := sqlite.NewSqlites(conf.DBPath)
 	if err != nil {
 		fmt.Printf("could not open db file: %s\n", err)
 		os.Exit(1)
@@ -33,8 +33,8 @@ func main() {
 		Name:  "plan",
 		Usage: "Plan your day with events",
 		Commands: []*cli.Command{
-			command.NewAddCmd(repo),
-			command.NewListCmd(repo),
+			command.NewAddCmd(localIDRepo, eventRepo),
+			command.NewListCmd(localIDRepo, eventRepo),
 		},
 	}
 

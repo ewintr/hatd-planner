@@ -44,14 +44,14 @@ var AddCmd = &cli.Command{
 	},
 }
 
-func NewAddCmd(repo storage.EventRepo) *cli.Command {
+func NewAddCmd(localRepo storage.LocalID, eventRepo storage.Event) *cli.Command {
 	AddCmd.Action = func(cCtx *cli.Context) error {
-		return Add(cCtx.String("name"), cCtx.String("on"), cCtx.String("at"), cCtx.String("for"), repo)
+		return Add(localRepo, eventRepo, cCtx.String("name"), cCtx.String("on"), cCtx.String("at"), cCtx.String("for"))
 	}
 	return AddCmd
 }
 
-func Add(nameStr, onStr, atStr, frStr string, repo storage.EventRepo) error {
+func Add(localIDRepo storage.LocalID, eventRepo storage.Event, nameStr, onStr, atStr, frStr string) error {
 	if nameStr == "" {
 		return fmt.Errorf("%w: name is required", ErrInvalidArg)
 	}
@@ -91,8 +91,16 @@ func Add(nameStr, onStr, atStr, frStr string, repo storage.EventRepo) error {
 		}
 		e.Duration = fr
 	}
-	if err := repo.Store(e); err != nil {
+	if err := eventRepo.Store(e); err != nil {
 		return fmt.Errorf("could not store event: %v", err)
+	}
+
+	localID, err := localIDRepo.Next()
+	if err != nil {
+		return fmt.Errorf("could not create next local id: %v", err)
+	}
+	if err := localIDRepo.Store(e.ID, localID); err != nil {
+		return fmt.Errorf("could not store local id: %v", err)
 	}
 
 	return nil
