@@ -35,6 +35,7 @@ func main() {
 		Commands: []*cli.Command{
 			command.NewAddCmd(localIDRepo, eventRepo),
 			command.NewListCmd(localIDRepo, eventRepo),
+			command.NewUpdateCmd(localIDRepo, eventRepo),
 		},
 	}
 

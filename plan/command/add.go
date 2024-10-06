@@ -87,7 +87,7 @@ func Add(localIDRepo storage.LocalID, eventRepo storage.Event, nameStr, onStr, a
 	if frStr != "" {
 		fr, err := time.ParseDuration(frStr)
 		if err != nil {
-			return fmt.Errorf("%w: could not parse time: %s", ErrInvalidArg, err)
+			return fmt.Errorf("%w: could not parse duration: %s", ErrInvalidArg, err)
 		}
 		e.Duration = fr
 	}
