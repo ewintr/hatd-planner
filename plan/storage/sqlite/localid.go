@@ -33,6 +33,10 @@ FROM localids
 	return result, nil
 }
 
+func (l *LocalID) FindOrNext(id string) (int, error) {
+	return 0, nil
+}
+
 func (l *LocalID) Next() (int, error) {
 	idMap, err := l.FindAll()
 	if err != nil {

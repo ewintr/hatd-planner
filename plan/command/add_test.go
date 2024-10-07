@@ -106,7 +106,8 @@ func TestAdd(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			eventRepo := memory.NewEvent()
 			localRepo := memory.NewLocalID()
-			actErr := command.Add(localRepo, eventRepo, tc.args["name"], tc.args["on"], tc.args["at"], tc.args["for"]) != nil
+			syncRepo := memory.NewSync()
+			actErr := command.Add(localRepo, eventRepo, syncRepo, tc.args["name"], tc.args["on"], tc.args["at"], tc.args["for"]) != nil
 			if tc.expErr != actErr {
 				t.Errorf("exp %v, got %v", tc.expErr, actErr)
 			}
@@ -138,6 +139,14 @@ func TestAdd(t *testing.T) {
 			tc.expEvent.ID = actEvents[0].ID
 			if diff := cmp.Diff(tc.expEvent, actEvents[0]); diff != "" {
 				t.Errorf("(exp +, got -)\n%s", diff)
+			}
+
+			updated, err := syncRepo.FindAll()
+			if err != nil {
+				t.Errorf("exp nil, got %v", err)
+			}
+			if len(updated) != 1 {
+				t.Errorf("exp 1, got %v", len(updated))
 			}
 		})
 	}

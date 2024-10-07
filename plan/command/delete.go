@@ -20,14 +20,14 @@ var DeleteCmd = &cli.Command{
 	},
 }
 
-func NewDeleteCmd(localRepo storage.LocalID, eventRepo storage.Event) *cli.Command {
+func NewDeleteCmd(localRepo storage.LocalID, eventRepo storage.Event, syncRepo storage.Sync) *cli.Command {
 	DeleteCmd.Action = func(cCtx *cli.Context) error {
-		return Delete(localRepo, eventRepo, cCtx.Int("localID"))
+		return Delete(localRepo, eventRepo, syncRepo, cCtx.Int("localID"))
 	}
 	return DeleteCmd
 }
 
-func Delete(localRepo storage.LocalID, eventRepo storage.Event, localID int) error {
+func Delete(localRepo storage.LocalID, eventRepo storage.Event, syncRepo storage.Sync, localID int) error {
 	var id string
 	idMap, err := localRepo.FindAll()
 	if err != nil {
@@ -46,5 +46,17 @@ func Delete(localRepo storage.LocalID, eventRepo storage.Event, localID int) err
 		return fmt.Errorf("could not delete event: %v", err)
 	}
 
+	e, err := eventRepo.Find(id)
+	if err != nil {
+		return fmt.Errorf("could not get event: %v", err)
+	}
+
+	it, err := e.Item()
+	if err != nil {
+		return fmt.Errorf("could not convert event to sync item: %v", err)
+	}
+	if err := syncRepo.Store(it); err != nil {
+		return fmt.Errorf("could not store sync item: %v", err)
+	}
 	return nil
 }

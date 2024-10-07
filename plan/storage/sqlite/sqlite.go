@@ -18,6 +18,13 @@ var migrations = []string{
 	`PRAGMA synchronous=NORMAL`,
 	`PRAGMA cache_size=2000`,
 	`CREATE TABLE localids ("id" TEXT UNIQUE, "local_id" INTEGER)`,
+	`CREATE TABLE items (
+    id TEXT PRIMARY KEY NOT NULL,
+    kind TEXT NOT NULL,
+    updated TIMESTAMP NOT NULL,
+    deleted BOOLEAN NOT NULL,
+    body TEXT NOT NULL
+)`,
 }
 
 var (
@@ -27,10 +34,10 @@ var (
 	ErrSqliteFailure            = errors.New("sqlite returned an error")
 )
 
-func NewSqlites(dbPath string) (*LocalID, *SqliteEvent, error) {
+func NewSqlites(dbPath string) (*LocalID, *SqliteEvent, *SqliteSync, error) {
 	db, err := sql.Open("sqlite", dbPath)
 	if err != nil {
-		return nil, nil, fmt.Errorf("%w: %v", ErrInvalidConfiguration, err)
+		return nil, nil, nil, fmt.Errorf("%w: %v", ErrInvalidConfiguration, err)
 	}
 
 	sl := &LocalID{
@@ -39,12 +46,15 @@ func NewSqlites(dbPath string) (*LocalID, *SqliteEvent, error) {
 	se := &SqliteEvent{
 		db: db,
 	}
-
-	if err := migrate(db, migrations); err != nil {
-		return nil, nil, err
+	ss := &SqliteSync{
+		db: db,
 	}
 
-	return sl, se, nil
+	if err := migrate(db, migrations); err != nil {
+		return nil, nil, nil, err
+	}
+
+	return sl, se, ss, nil
 }
 
 func migrate(db *sql.DB, wanted []string) error {

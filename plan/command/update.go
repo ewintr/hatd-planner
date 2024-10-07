@@ -41,14 +41,14 @@ var UpdateCmd = &cli.Command{
 	},
 }
 
-func NewUpdateCmd(localRepo storage.LocalID, eventRepo storage.Event) *cli.Command {
+func NewUpdateCmd(localRepo storage.LocalID, eventRepo storage.Event, syncRepo storage.Sync) *cli.Command {
 	UpdateCmd.Action = func(cCtx *cli.Context) error {
-		return Update(localRepo, eventRepo, cCtx.Int("localID"), cCtx.String("name"), cCtx.String("on"), cCtx.String("at"), cCtx.String("for"))
+		return Update(localRepo, eventRepo, syncRepo, cCtx.Int("localID"), cCtx.String("name"), cCtx.String("on"), cCtx.String("at"), cCtx.String("for"))
 	}
 	return UpdateCmd
 }
 
-func Update(localRepo storage.LocalID, eventRepo storage.Event, localID int, nameStr, onStr, atStr, frStr string) error {
+func Update(localRepo storage.LocalID, eventRepo storage.Event, syncRepo storage.Sync, localID int, nameStr, onStr, atStr, frStr string) error {
 	var id string
 	idMap, err := localRepo.FindAll()
 	if err != nil {
@@ -97,6 +97,14 @@ func Update(localRepo storage.LocalID, eventRepo storage.Event, localID int, nam
 	}
 	if err := eventRepo.Store(e); err != nil {
 		return fmt.Errorf("could not store event: %v", err)
+	}
+
+	it, err := e.Item()
+	if err != nil {
+		return fmt.Errorf("could not convert event to sync item: %v", err)
+	}
+	if err := syncRepo.Store(it); err != nil {
+		return fmt.Errorf("could not store sync item: %v", err)
 	}
 
 	return nil

@@ -3,6 +3,7 @@ package storage
 import (
 	"errors"
 	"sort"
+	"time"
 
 	"go-mod.ewintr.nl/planner/item"
 )
@@ -13,9 +14,17 @@ var (
 
 type LocalID interface {
 	FindAll() (map[string]int, error)
+	FindOrNext(id string) (int, error)
 	Next() (int, error)
 	Store(id string, localID int) error
 	Delete(id string) error
+}
+
+type Sync interface {
+	FindAll() ([]item.Item, error)
+	Store(i item.Item) error
+	DeleteAll() error
+	LastUpdate() (time.Time, error)
 }
 
 type Event interface {

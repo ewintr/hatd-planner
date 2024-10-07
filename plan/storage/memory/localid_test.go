@@ -37,6 +37,23 @@ func TestLocalID(t *testing.T) {
 		t.Errorf("exp nil, got %v", actErr)
 	}
 
+	t.Log("retrieve known")
+	actLid, actErr := repo.FindOrNext("test")
+	if actErr != nil {
+		t.Errorf("exp nil, got %v", actErr)
+	}
+	if actLid != 1 {
+		t.Errorf("exp 1, git %v", actLid)
+	}
+	t.Log("retrieve unknown")
+	actLid, actErr = repo.FindOrNext("new")
+	if actErr != nil {
+		t.Errorf("exp nil, got %v", actErr)
+	}
+	if actLid != 2 {
+		t.Errorf("exp 2, got %v", actLid)
+	}
+
 	actIDs, actErr = repo.FindAll()
 	if actErr != nil {
 		t.Errorf("exp nil, got %v", actErr)

@@ -44,14 +44,14 @@ var AddCmd = &cli.Command{
 	},
 }
 
-func NewAddCmd(localRepo storage.LocalID, eventRepo storage.Event) *cli.Command {
+func NewAddCmd(localRepo storage.LocalID, eventRepo storage.Event, syncRepo storage.Sync) *cli.Command {
 	AddCmd.Action = func(cCtx *cli.Context) error {
-		return Add(localRepo, eventRepo, cCtx.String("name"), cCtx.String("on"), cCtx.String("at"), cCtx.String("for"))
+		return Add(localRepo, eventRepo, syncRepo, cCtx.String("name"), cCtx.String("on"), cCtx.String("at"), cCtx.String("for"))
 	}
 	return AddCmd
 }
 
-func Add(localIDRepo storage.LocalID, eventRepo storage.Event, nameStr, onStr, atStr, frStr string) error {
+func Add(localIDRepo storage.LocalID, eventRepo storage.Event, syncRepo storage.Sync, nameStr, onStr, atStr, frStr string) error {
 	if nameStr == "" {
 		return fmt.Errorf("%w: name is required", ErrInvalidArg)
 	}
@@ -101,6 +101,14 @@ func Add(localIDRepo storage.LocalID, eventRepo storage.Event, nameStr, onStr, a
 	}
 	if err := localIDRepo.Store(e.ID, localID); err != nil {
 		return fmt.Errorf("could not store local id: %v", err)
+	}
+
+	it, err := e.Item()
+	if err != nil {
+		return fmt.Errorf("could not convert event to sync item: %v", err)
+	}
+	if err := syncRepo.Store(it); err != nil {
+		return fmt.Errorf("could not store sync item: %v", err)
 	}
 
 	return nil

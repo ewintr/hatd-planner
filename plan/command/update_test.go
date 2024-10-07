@@ -154,6 +154,7 @@ func TestUpdate(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			eventRepo := memory.NewEvent()
 			localIDRepo := memory.NewLocalID()
+			syncRepo := memory.NewSync()
 			if err := eventRepo.Store(item.Event{
 				ID: eid,
 				EventBody: item.EventBody{
@@ -168,7 +169,7 @@ func TestUpdate(t *testing.T) {
 				t.Errorf("exp nil, ,got %v", err)
 			}
 
-			actErr := command.Update(localIDRepo, eventRepo, tc.localID, tc.args["name"], tc.args["on"], tc.args["at"], tc.args["for"]) != nil
+			actErr := command.Update(localIDRepo, eventRepo, syncRepo, tc.localID, tc.args["name"], tc.args["on"], tc.args["at"], tc.args["for"]) != nil
 			if tc.expErr != actErr {
 				t.Errorf("exp %v, got %v", tc.expErr, actErr)
 			}
@@ -183,7 +184,13 @@ func TestUpdate(t *testing.T) {
 			if diff := cmp.Diff(tc.expEvent, actEvent); diff != "" {
 				t.Errorf("(exp +, got -)\n%s", diff)
 			}
-
+			updated, err := syncRepo.FindAll()
+			if err != nil {
+				t.Errorf("exp nil, got %v", err)
+			}
+			if len(updated) != 1 {
+				t.Errorf("exp 1, got %v", len(updated))
+			}
 		})
 	}
 }
