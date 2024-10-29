@@ -56,7 +56,7 @@ func Sync(client client.Client, syncRepo storage.Sync, localIDRepo storage.Local
 	updated := make([]item.Item, 0)
 	for _, ri := range recItems {
 		if ri.Deleted {
-			if err := localIDRepo.Delete(ri.ID); err != nil {
+			if err := localIDRepo.Delete(ri.ID); err != nil && !errors.Is(err, storage.ErrNotFound) {
 				return fmt.Errorf("could not delete local id: %v", err)
 			}
 			if err := eventRepo.Delete(ri.ID); err != nil && !errors.Is(err, storage.ErrNotFound) {
