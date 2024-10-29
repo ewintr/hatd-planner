@@ -86,3 +86,17 @@ func (e Event) Item() (Item, error) {
 		Body: string(body),
 	}, nil
 }
+
+func (e Event) Valid() bool {
+	if e.Title == "" {
+		return false
+	}
+	if e.Start.IsZero() || e.Start.Year() < 2024 {
+		return false
+	}
+	if e.Duration.Seconds() < 1 {
+		return false
+	}
+
+	return true
+}

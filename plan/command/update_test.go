@@ -1,6 +1,7 @@
 package command_test
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -10,7 +11,7 @@ import (
 	"go-mod.ewintr.nl/planner/plan/storage/memory"
 )
 
-func TestUpdate(t *testing.T) {
+func TestUpdateExecute(t *testing.T) {
 	t.Parallel()
 
 	eid := "c"
@@ -29,21 +30,14 @@ func TestUpdate(t *testing.T) {
 	for _, tc := range []struct {
 		name     string
 		localID  int
-		args     map[string]string
+		main     []string
+		flags    map[string]string
 		expEvent item.Event
 		expErr   bool
 	}{
 		{
-			name:    "no args",
-			localID: lid,
-			expEvent: item.Event{
-				ID: eid,
-				EventBody: item.EventBody{
-					Title:    title,
-					Start:    start,
-					Duration: oneHour,
-				},
-			},
+			name:   "no args",
+			expErr: true,
 		},
 		{
 			name:    "not found",
@@ -53,9 +47,7 @@ func TestUpdate(t *testing.T) {
 		{
 			name:    "name",
 			localID: lid,
-			args: map[string]string{
-				"name": "updated",
-			},
+			main:    []string{"update", fmt.Sprintf("%d", lid), "updated"},
 			expEvent: item.Event{
 				ID: eid,
 				EventBody: item.EventBody{
@@ -68,7 +60,8 @@ func TestUpdate(t *testing.T) {
 		{
 			name:    "invalid on",
 			localID: lid,
-			args: map[string]string{
+			main:    []string{"update", fmt.Sprintf("%d", lid)},
+			flags: map[string]string{
 				"on": "invalid",
 			},
 			expErr: true,
@@ -76,7 +69,8 @@ func TestUpdate(t *testing.T) {
 		{
 			name:    "on",
 			localID: lid,
-			args: map[string]string{
+			main:    []string{"update", fmt.Sprintf("%d", lid)},
+			flags: map[string]string{
 				"on": "2024-10-02",
 			},
 			expEvent: item.Event{
@@ -91,7 +85,8 @@ func TestUpdate(t *testing.T) {
 		{
 			name:    "invalid at",
 			localID: lid,
-			args: map[string]string{
+			main:    []string{"update", fmt.Sprintf("%d", lid)},
+			flags: map[string]string{
 				"at": "invalid",
 			},
 			expErr: true,
@@ -99,7 +94,8 @@ func TestUpdate(t *testing.T) {
 		{
 			name:    "at",
 			localID: lid,
-			args: map[string]string{
+			main:    []string{"update", fmt.Sprintf("%d", lid)},
+			flags: map[string]string{
 				"at": "11:00",
 			},
 			expEvent: item.Event{
@@ -114,7 +110,8 @@ func TestUpdate(t *testing.T) {
 		{
 			name:    "on and at",
 			localID: lid,
-			args: map[string]string{
+			main:    []string{"update", fmt.Sprintf("%d", lid)},
+			flags: map[string]string{
 				"on": "2024-10-02",
 				"at": "11:00",
 			},
@@ -130,7 +127,8 @@ func TestUpdate(t *testing.T) {
 		{
 			name:    "invalid for",
 			localID: lid,
-			args: map[string]string{
+			main:    []string{"update", fmt.Sprintf("%d", lid)},
+			flags: map[string]string{
 				"for": "invalid",
 			},
 			expErr: true,
@@ -138,7 +136,8 @@ func TestUpdate(t *testing.T) {
 		{
 			name:    "for",
 			localID: lid,
-			args: map[string]string{
+			main:    []string{"update", fmt.Sprintf("%d", lid)},
+			flags: map[string]string{
 				"for": "2h",
 			},
 			expEvent: item.Event{
@@ -169,9 +168,10 @@ func TestUpdate(t *testing.T) {
 				t.Errorf("exp nil, ,got %v", err)
 			}
 
-			actErr := command.Update(localIDRepo, eventRepo, syncRepo, tc.localID, tc.args["name"], tc.args["on"], tc.args["at"], tc.args["for"]) != nil
-			if tc.expErr != actErr {
-				t.Errorf("exp %v, got %v", tc.expErr, actErr)
+			cmd := command.NewUpdate(localIDRepo, eventRepo, syncRepo)
+			actParseErr := cmd.Execute(tc.main, tc.flags) != nil
+			if tc.expErr != actParseErr {
+				t.Errorf("exp %v, got %v", tc.expErr, actParseErr)
 			}
 			if tc.expErr {
 				return

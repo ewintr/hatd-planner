@@ -1,11 +1,11 @@
 package memory
 
 import (
-	"errors"
 	"sort"
 	"sync"
 
 	"go-mod.ewintr.nl/planner/item"
+	"go-mod.ewintr.nl/planner/plan/storage"
 )
 
 type Event struct {
@@ -25,7 +25,7 @@ func (r *Event) Find(id string) (item.Event, error) {
 
 	event, exists := r.events[id]
 	if !exists {
-		return item.Event{}, errors.New("event not found")
+		return item.Event{}, storage.ErrNotFound
 	}
 	return event, nil
 }
@@ -59,7 +59,7 @@ func (r *Event) Delete(id string) error {
 	defer r.mutex.Unlock()
 
 	if _, exists := r.events[id]; !exists {
-		return errors.New("event not found")
+		return storage.ErrNotFound
 	}
 	delete(r.events, id)
 

@@ -4,28 +4,35 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/urfave/cli/v2"
 	"go-mod.ewintr.nl/planner/plan/storage"
 )
 
-var ListCmd = &cli.Command{
-	Name:  "list",
-	Usage: "List everything",
+type List struct {
+	localIDRepo storage.LocalID
+	eventRepo   storage.Event
 }
 
-func NewListCmd(localRepo storage.LocalID, eventRepo storage.Event) *cli.Command {
-	ListCmd.Action = func(cCtx *cli.Context) error {
-		return List(localRepo, eventRepo)
+func NewList(localIDRepo storage.LocalID, eventRepo storage.Event) Command {
+	return &List{
+		localIDRepo: localIDRepo,
+		eventRepo:   eventRepo,
 	}
-	return ListCmd
 }
 
-func List(localRepo storage.LocalID, eventRepo storage.Event) error {
-	localIDs, err := localRepo.FindAll()
+func (list *List) Execute(main []string, flags map[string]string) error {
+	if len(main) > 0 && main[0] != "list" {
+		return ErrWrongCommand
+	}
+
+	return list.do()
+}
+
+func (list *List) do() error {
+	localIDs, err := list.localIDRepo.FindAll()
 	if err != nil {
 		return fmt.Errorf("could not get local ids: %v", err)
 	}
-	all, err := eventRepo.FindAll()
+	all, err := list.eventRepo.FindAll()
 	if err != nil {
 		return err
 	}

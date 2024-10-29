@@ -23,14 +23,24 @@ func TestDelete(t *testing.T) {
 	}
 
 	for _, tc := range []struct {
-		name    string
-		localID int
-		expErr  bool
+		name   string
+		main   []string
+		flags  map[string]string
+		expErr bool
 	}{
 		{
-			name:    "not found",
-			localID: 5,
-			expErr:  true,
+			name:   "invalid",
+			main:   []string{"update"},
+			expErr: true,
+		},
+		{
+			name:   "not found",
+			main:   []string{"delete", "5"},
+			expErr: true,
+		},
+		{
+			name: "valid",
+			main: []string{"delete", "1"},
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -44,7 +54,9 @@ func TestDelete(t *testing.T) {
 				t.Errorf("exp nil, got %v", err)
 			}
 
-			actErr := command.Delete(localRepo, eventRepo, syncRepo, tc.localID) != nil
+			cmd := command.NewDelete(localRepo, eventRepo, syncRepo)
+
+			actErr := cmd.Execute(tc.main, tc.flags) != nil
 			if tc.expErr != actErr {
 				t.Errorf("exp %v, got %v", tc.expErr, actErr)
 			}

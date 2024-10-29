@@ -11,6 +11,43 @@ import (
 	"go-mod.ewintr.nl/planner/sync/client"
 )
 
+func TestSyncParse(t *testing.T) {
+	t.Parallel()
+
+	syncClient := client.NewMemory()
+	syncRepo := memory.NewSync()
+	localIDRepo := memory.NewLocalID()
+	eventRepo := memory.NewEvent()
+
+	for _, tc := range []struct {
+		name   string
+		main   []string
+		expErr bool
+	}{
+		{
+			name:   "empty",
+			expErr: true,
+		},
+		{
+			name:   "wrong",
+			main:   []string{"wrong"},
+			expErr: true,
+		},
+		{
+			name: "valid",
+			main: []string{"sync"},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			cmd := command.NewSync(syncClient, syncRepo, localIDRepo, eventRepo)
+			actErr := cmd.Execute(tc.main, nil) != nil
+			if tc.expErr != actErr {
+				t.Errorf("exp %v, got %v", tc.expErr, actErr)
+			}
+		})
+	}
+}
+
 func TestSyncSend(t *testing.T) {
 	t.Parallel()
 
@@ -45,8 +82,8 @@ func TestSyncSend(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-
-			if err := command.Sync(syncClient, syncRepo, localIDRepo, eventRepo, false); err != nil {
+			cmd := command.NewSync(syncClient, syncRepo, localIDRepo, eventRepo)
+			if err := cmd.Execute([]string{"sync"}, nil); err != nil {
 				t.Errorf("exp nil, got %v", err)
 			}
 			actItems, actErr := syncClient.Updated(tc.ks, tc.ts)
@@ -163,7 +200,8 @@ func TestSyncReceive(t *testing.T) {
 			}
 
 			// sync
-			if err := command.Sync(syncClient, syncRepo, localIDRepo, eventRepo, false); err != nil {
+			cmd := command.NewSync(syncClient, syncRepo, localIDRepo, eventRepo)
+			if err := cmd.Execute([]string{"sync"}, nil); err != nil {
 				t.Errorf("exp nil, got %v", err)
 			}
 

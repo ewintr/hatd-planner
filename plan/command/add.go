@@ -1,105 +1,107 @@
 package command
 
 import (
-	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/urfave/cli/v2"
 	"go-mod.ewintr.nl/planner/item"
 	"go-mod.ewintr.nl/planner/plan/storage"
 )
 
-var (
-	ErrInvalidArg = errors.New("invalid argument")
-)
-
-var AddCmd = &cli.Command{
-	Name:  "add",
-	Usage: "Add a new event",
-	Flags: []cli.Flag{
-		&cli.StringFlag{
-			Name:     "name",
-			Aliases:  []string{"n"},
-			Usage:    "The event that will happen",
-			Required: true,
-		},
-		&cli.StringFlag{
-			Name:     "on",
-			Aliases:  []string{"o"},
-			Usage:    "The date, in YYYY-MM-DD format",
-			Required: true,
-		},
-		&cli.StringFlag{
-			Name:    "at",
-			Aliases: []string{"a"},
-			Usage:   "The time, in HH:MM format. If omitted, the event will last the whole day",
-		},
-		&cli.StringFlag{
-			Name:    "for",
-			Aliases: []string{"f"},
-			Usage:   "The duration, in show format (e.g. 1h30m)",
-		},
-	},
+type Add struct {
+	localIDRepo storage.LocalID
+	eventRepo   storage.Event
+	syncRepo    storage.Sync
+	argSet      *ArgSet
 }
 
-func NewAddCmd(localRepo storage.LocalID, eventRepo storage.Event, syncRepo storage.Sync) *cli.Command {
-	AddCmd.Action = func(cCtx *cli.Context) error {
-		return Add(localRepo, eventRepo, syncRepo, cCtx.String("name"), cCtx.String("on"), cCtx.String("at"), cCtx.String("for"))
+func NewAdd(localRepo storage.LocalID, eventRepo storage.Event, syncRepo storage.Sync) Command {
+	return &Add{
+		localIDRepo: localRepo,
+		eventRepo:   eventRepo,
+		syncRepo:    syncRepo,
+		argSet: &ArgSet{
+			Flags: map[string]Flag{
+				FlagOn:  &FlagDate{},
+				FlagAt:  &FlagTime{},
+				FlagFor: &FlagDuration{},
+			},
+		},
 	}
-	return AddCmd
 }
 
-func Add(localIDRepo storage.LocalID, eventRepo storage.Event, syncRepo storage.Sync, nameStr, onStr, atStr, frStr string) error {
-	if nameStr == "" {
-		return fmt.Errorf("%w: name is required", ErrInvalidArg)
+func (add *Add) Execute(main []string, flags map[string]string) error {
+	if len(main) == 0 || main[0] != "add" {
+		return ErrWrongCommand
 	}
-	if onStr == "" {
+	as := add.argSet
+	if len(main) > 1 {
+		as.Main = strings.Join(main[1:], " ")
+	}
+	for k := range as.Flags {
+		v, ok := flags[k]
+		if !ok {
+			continue
+		}
+		if err := as.Set(k, v); err != nil {
+			return fmt.Errorf("could not set %s: %v", k, err)
+		}
+	}
+	if as.Main == "" {
+		return fmt.Errorf("%w: title is required", ErrInvalidArg)
+	}
+	if !as.IsSet(FlagOn) {
 		return fmt.Errorf("%w: date is required", ErrInvalidArg)
 	}
-	if atStr == "" && frStr != "" {
+	if !as.IsSet(FlagAt) && as.IsSet(FlagFor) {
 		return fmt.Errorf("%w: can not have duration without start time", ErrInvalidArg)
 	}
-	if atStr == "" && frStr == "" {
-		frStr = "24h"
+	if as.IsSet(FlagAt) && !as.IsSet(FlagFor) {
+		if err := as.Flags[FlagFor].Set("1h"); err != nil {
+			return fmt.Errorf("could not set duration to one hour")
+		}
+	}
+	if !as.IsSet(FlagAt) && !as.IsSet(FlagFor) {
+		if err := as.Flags[FlagFor].Set("24h"); err != nil {
+			return fmt.Errorf("could not set duration to 24 hours")
+		}
 	}
 
-	startFormat := "2006-01-02"
-	startStr := onStr
-	if atStr != "" {
-		startFormat = fmt.Sprintf("%s 15:04", startFormat)
-		startStr = fmt.Sprintf("%s %s", startStr, atStr)
-	}
-	start, err := time.Parse(startFormat, startStr)
-	if err != nil {
-		return fmt.Errorf("%w: could not parse start time and date: %v", ErrInvalidArg, err)
+	return add.do()
+}
+
+func (add *Add) do() error {
+	as := add.argSet
+	start := as.GetTime(FlagOn)
+	if as.IsSet(FlagAt) {
+		at := as.GetTime(FlagAt)
+		h := time.Duration(at.Hour()) * time.Hour
+		m := time.Duration(at.Minute()) * time.Minute
+		start = start.Add(h).Add(m)
 	}
 
 	e := item.Event{
 		ID: uuid.New().String(),
 		EventBody: item.EventBody{
-			Title: nameStr,
+			Title: as.Main,
 			Start: start,
 		},
 	}
 
-	if frStr != "" {
-		fr, err := time.ParseDuration(frStr)
-		if err != nil {
-			return fmt.Errorf("%w: could not parse duration: %s", ErrInvalidArg, err)
-		}
-		e.Duration = fr
+	if as.IsSet(FlagFor) {
+		e.Duration = as.GetDuration(FlagFor)
 	}
-	if err := eventRepo.Store(e); err != nil {
+	if err := add.eventRepo.Store(e); err != nil {
 		return fmt.Errorf("could not store event: %v", err)
 	}
 
-	localID, err := localIDRepo.Next()
+	localID, err := add.localIDRepo.Next()
 	if err != nil {
 		return fmt.Errorf("could not create next local id: %v", err)
 	}
-	if err := localIDRepo.Store(e.ID, localID); err != nil {
+	if err := add.localIDRepo.Store(e.ID, localID); err != nil {
 		return fmt.Errorf("could not store local id: %v", err)
 	}
 
@@ -107,7 +109,7 @@ func Add(localIDRepo storage.LocalID, eventRepo storage.Event, syncRepo storage.
 	if err != nil {
 		return fmt.Errorf("could not convert event to sync item: %v", err)
 	}
-	if err := syncRepo.Store(it); err != nil {
+	if err := add.syncRepo.Store(it); err != nil {
 		return fmt.Errorf("could not store sync item: %v", err)
 	}
 

@@ -13,107 +13,109 @@ import (
 func TestAdd(t *testing.T) {
 	t.Parallel()
 
-	oneHour, err := time.ParseDuration("1h")
-	if err != nil {
-		t.Errorf("exp nil, got %v", err)
-	}
-	oneDay, err := time.ParseDuration("24h")
-	if err != nil {
-		t.Errorf("exp nil, got %v", err)
-	}
+	aDateStr := "2024-11-02"
+	aDate := time.Date(2024, 11, 2, 0, 0, 0, 0, time.UTC)
+	aTimeStr := "12:00"
+	aDay := time.Duration(24) * time.Hour
+	anHourStr := "1h"
+	anHour := time.Hour
+	aDateAndTime := time.Date(2024, 11, 2, 12, 0, 0, 0, time.UTC)
 
 	for _, tc := range []struct {
 		name     string
-		args     map[string]string
-		expEvent item.Event
+		main     []string
+		flags    map[string]string
 		expErr   bool
+		expEvent item.Event
 	}{
 		{
-			name: "no name",
-			args: map[string]string{
-				"on":  "2024-10-01",
-				"at":  "9:00",
-				"for": "1h",
+			name:   "empty",
+			expErr: true,
+		},
+		{
+			name: "title missing",
+			main: []string{"add"},
+			flags: map[string]string{
+				command.FlagOn: aDateStr,
 			},
 			expErr: true,
 		},
 		{
-			name: "no date",
-			args: map[string]string{
-				"name": "event",
-				"at":   "9:00",
-				"for":  "1h",
-			},
+			name:   "date missing",
+			main:   []string{"add", "some", "title"},
 			expErr: true,
 		},
 		{
-			name: "duration, but no time",
-			args: map[string]string{
-				"name": "event",
-				"on":   "2024-10-01",
-				"for":  "1h",
+			name: "only date",
+			main: []string{"add", "title"},
+			flags: map[string]string{
+				command.FlagOn: aDateStr,
+			},
+			expEvent: item.Event{
+				ID: "title",
+				EventBody: item.EventBody{
+					Title:    "title",
+					Start:    aDate,
+					Duration: aDay,
+				},
+			},
+		},
+		{
+			name: "date and time",
+			main: []string{"add", "title"},
+			flags: map[string]string{
+				command.FlagOn: aDateStr,
+				command.FlagAt: aTimeStr,
+			},
+			expEvent: item.Event{
+				ID: "title",
+				EventBody: item.EventBody{
+					Title:    "title",
+					Start:    aDateAndTime,
+					Duration: anHour,
+				},
+			},
+		},
+		{
+			name: "date, time and duration",
+			main: []string{"add", "title"},
+			flags: map[string]string{
+				command.FlagOn:  aDateStr,
+				command.FlagAt:  aTimeStr,
+				command.FlagFor: anHourStr,
+			},
+			expEvent: item.Event{
+				ID: "title",
+				EventBody: item.EventBody{
+					Title:    "title",
+					Start:    aDateAndTime,
+					Duration: anHour,
+				},
+			},
+		},
+		{
+			name: "date and duration",
+			main: []string{"add", "title"},
+			flags: map[string]string{
+				command.FlagOn:  aDateStr,
+				command.FlagFor: anHourStr,
 			},
 			expErr: true,
-		},
-		{
-			name: "time, but no duration",
-			args: map[string]string{
-				"name": "event",
-				"on":   "2024-10-01",
-				"at":   "9:00",
-			},
-			expEvent: item.Event{
-				ID: "a",
-				EventBody: item.EventBody{
-					Title: "event",
-					Start: time.Date(2024, 10, 1, 9, 0, 0, 0, time.UTC),
-				},
-			},
-		},
-		{
-			name: "no time, no duration",
-			args: map[string]string{
-				"name": "event",
-				"on":   "2024-10-01",
-			},
-			expEvent: item.Event{
-				ID: "a",
-				EventBody: item.EventBody{
-					Title:    "event",
-					Start:    time.Date(2024, 10, 1, 0, 0, 0, 0, time.UTC),
-					Duration: oneDay,
-				},
-			},
-		},
-		{
-			name: "full",
-			args: map[string]string{
-				"name": "event",
-				"on":   "2024-10-01",
-				"at":   "9:00",
-				"for":  "1h",
-			},
-			expEvent: item.Event{
-				ID: "a",
-				EventBody: item.EventBody{
-					Title:    "event",
-					Start:    time.Date(2024, 10, 1, 9, 0, 0, 0, time.UTC),
-					Duration: oneHour,
-				},
-			},
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			eventRepo := memory.NewEvent()
 			localRepo := memory.NewLocalID()
 			syncRepo := memory.NewSync()
-			actErr := command.Add(localRepo, eventRepo, syncRepo, tc.args["name"], tc.args["on"], tc.args["at"], tc.args["for"]) != nil
-			if tc.expErr != actErr {
-				t.Errorf("exp %v, got %v", tc.expErr, actErr)
+			cmd := command.NewAdd(localRepo, eventRepo, syncRepo)
+			actParseErr := cmd.Execute(tc.main, tc.flags) != nil
+			if tc.expErr != actParseErr {
+				t.Errorf("exp %v, got %v", tc.expErr, actParseErr)
 			}
 			if tc.expErr {
 				return
 			}
+
 			actEvents, err := eventRepo.FindAll()
 			if err != nil {
 				t.Errorf("exp nil, got %v", err)

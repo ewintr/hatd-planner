@@ -5,50 +5,54 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/urfave/cli/v2"
 	"go-mod.ewintr.nl/planner/item"
 	"go-mod.ewintr.nl/planner/plan/storage"
 	"go-mod.ewintr.nl/planner/sync/client"
 )
 
-var SyncCmd = &cli.Command{
-	Name:  "sync",
-	Usage: "Synchronize with server",
-	Flags: []cli.Flag{
-		&cli.BoolFlag{
-			Name:    "full",
-			Aliases: []string{"f"},
-			Usage:   "Force full sync",
-		},
-	},
+type Sync struct {
+	client      client.Client
+	syncRepo    storage.Sync
+	localIDRepo storage.LocalID
+	eventRepo   storage.Event
 }
 
-func NewSyncCmd(client client.Client, syncRepo storage.Sync, localIDRepo storage.LocalID, eventRepo storage.Event) *cli.Command {
-	SyncCmd.Action = func(cCtx *cli.Context) error {
-		return Sync(client, syncRepo, localIDRepo, eventRepo, cCtx.Bool("full"))
+func NewSync(client client.Client, syncRepo storage.Sync, localIDRepo storage.LocalID, eventRepo storage.Event) Command {
+	return &Sync{
+		client:      client,
+		syncRepo:    syncRepo,
+		localIDRepo: localIDRepo,
+		eventRepo:   eventRepo,
 	}
-	return SyncCmd
 }
 
-func Sync(client client.Client, syncRepo storage.Sync, localIDRepo storage.LocalID, eventRepo storage.Event, full bool) error {
+func (sync *Sync) Execute(main []string, flags map[string]string) error {
+	if len(main) == 0 || main[0] != "sync" {
+		return ErrWrongCommand
+	}
+
+	return sync.do()
+}
+
+func (sync *Sync) do() error {
 	// local new and updated
-	sendItems, err := syncRepo.FindAll()
+	sendItems, err := sync.syncRepo.FindAll()
 	if err != nil {
 		return fmt.Errorf("could not get updated items: %v", err)
 	}
-	if err := client.Update(sendItems); err != nil {
+	if err := sync.client.Update(sendItems); err != nil {
 		return fmt.Errorf("could not send updated items: %v", err)
 	}
-	if err := syncRepo.DeleteAll(); err != nil {
+	if err := sync.syncRepo.DeleteAll(); err != nil {
 		return fmt.Errorf("could not clear updated items: %v", err)
 	}
 
 	// get new/updated items
-	ts, err := syncRepo.LastUpdate()
+	ts, err := sync.syncRepo.LastUpdate()
 	if err != nil {
 		return fmt.Errorf("could not find timestamp of last update: %v", err)
 	}
-	recItems, err := client.Updated([]item.Kind{item.KindEvent}, ts)
+	recItems, err := sync.client.Updated([]item.Kind{item.KindEvent}, ts)
 	if err != nil {
 		return fmt.Errorf("could not receive updates: %v", err)
 	}
@@ -56,10 +60,10 @@ func Sync(client client.Client, syncRepo storage.Sync, localIDRepo storage.Local
 	updated := make([]item.Item, 0)
 	for _, ri := range recItems {
 		if ri.Deleted {
-			if err := localIDRepo.Delete(ri.ID); err != nil && !errors.Is(err, storage.ErrNotFound) {
+			if err := sync.localIDRepo.Delete(ri.ID); err != nil && !errors.Is(err, storage.ErrNotFound) {
 				return fmt.Errorf("could not delete local id: %v", err)
 			}
-			if err := eventRepo.Delete(ri.ID); err != nil && !errors.Is(err, storage.ErrNotFound) {
+			if err := sync.eventRepo.Delete(ri.ID); err != nil && !errors.Is(err, storage.ErrNotFound) {
 				return fmt.Errorf("could not delete event: %v", err)
 			}
 			continue
@@ -67,7 +71,7 @@ func Sync(client client.Client, syncRepo storage.Sync, localIDRepo storage.Local
 		updated = append(updated, ri)
 	}
 
-	lidMap, err := localIDRepo.FindAll()
+	lidMap, err := sync.localIDRepo.FindAll()
 	if err != nil {
 		return fmt.Errorf("could not get local ids: %v", err)
 	}
@@ -80,17 +84,17 @@ func Sync(client client.Client, syncRepo storage.Sync, localIDRepo storage.Local
 			ID:        u.ID,
 			EventBody: eBody,
 		}
-		if err := eventRepo.Store(e); err != nil {
+		if err := sync.eventRepo.Store(e); err != nil {
 			return fmt.Errorf("could not store event: %v", err)
 		}
 		lid, ok := lidMap[u.ID]
 		if !ok {
-			lid, err = localIDRepo.Next()
+			lid, err = sync.localIDRepo.Next()
 			if err != nil {
 				return fmt.Errorf("could not get next local id: %v", err)
 			}
 
-			if err := localIDRepo.Store(u.ID, lid); err != nil {
+			if err := sync.localIDRepo.Store(u.ID, lid); err != nil {
 				return fmt.Errorf("could not store local id: %v", err)
 			}
 		}

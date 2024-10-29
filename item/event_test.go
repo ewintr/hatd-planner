@@ -132,3 +132,72 @@ func TestEventItem(t *testing.T) {
 		})
 	}
 }
+
+func TestEventValidate(t *testing.T) {
+	t.Parallel()
+
+	oneHour, err := time.ParseDuration("1h")
+	if err != nil {
+		t.Errorf("exp nil, got %v", err)
+	}
+
+	for _, tc := range []struct {
+		name  string
+		event item.Event
+		exp   bool
+	}{
+		{
+			name: "empty",
+		},
+		{
+			name: "missing title",
+			event: item.Event{
+				ID: "a",
+				EventBody: item.EventBody{
+					Start:    time.Date(2024, 9, 20, 8, 0, 0, 0, time.UTC),
+					Duration: oneHour,
+				},
+			},
+		},
+		{
+			name: "no date",
+			event: item.Event{
+				ID: "a",
+				EventBody: item.EventBody{
+					Title:    "title",
+					Start:    time.Date(0, 0, 0, 8, 0, 0, 0, time.UTC),
+					Duration: oneHour,
+				},
+			},
+		},
+		{
+			name: "no duration",
+			event: item.Event{
+				ID: "a",
+				EventBody: item.EventBody{
+					Title: "title",
+					Start: time.Date(2024, 9, 20, 8, 0, 0, 0, time.UTC),
+				},
+			},
+		},
+		{
+			name: "valid",
+			event: item.Event{
+				ID: "a",
+				EventBody: item.EventBody{
+					Title:    "title",
+					Start:    time.Date(2024, 9, 20, 8, 0, 0, 0, time.UTC),
+					Duration: oneHour,
+				},
+			},
+			exp: true,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if act := tc.event.Valid(); tc.exp != act {
+				t.Errorf("exp %v, got %v", tc.exp, act)
+			}
+
+		})
+	}
+}

@@ -2,60 +2,73 @@ package command
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
-	"github.com/urfave/cli/v2"
 	"go-mod.ewintr.nl/planner/plan/storage"
 )
 
-var UpdateCmd = &cli.Command{
-	Name:  "update",
-	Usage: "Update an event",
-	Flags: []cli.Flag{
-		&cli.IntFlag{
-			Name:     "localID",
-			Aliases:  []string{"l"},
-			Usage:    "The local id of the event",
-			Required: true,
-		},
-		&cli.StringFlag{
-			Name:    "name",
-			Aliases: []string{"n"},
-			Usage:   "The event that will happen",
-		},
-		&cli.StringFlag{
-			Name:    "on",
-			Aliases: []string{"o"},
-			Usage:   "The date, in YYYY-MM-DD format",
-		},
-		&cli.StringFlag{
-			Name:    "at",
-			Aliases: []string{"a"},
-			Usage:   "The time, in HH:MM format. If omitted, the event will last the whole day",
-		},
-		&cli.StringFlag{
-			Name:    "for",
-			Aliases: []string{"f"},
-			Usage:   "The duration, in show format (e.g. 1h30m)",
-		},
-	},
+type Update struct {
+	localIDRepo storage.LocalID
+	eventRepo   storage.Event
+	syncRepo    storage.Sync
+	argSet      *ArgSet
+	localID     int
 }
 
-func NewUpdateCmd(localRepo storage.LocalID, eventRepo storage.Event, syncRepo storage.Sync) *cli.Command {
-	UpdateCmd.Action = func(cCtx *cli.Context) error {
-		return Update(localRepo, eventRepo, syncRepo, cCtx.Int("localID"), cCtx.String("name"), cCtx.String("on"), cCtx.String("at"), cCtx.String("for"))
+func NewUpdate(localIDRepo storage.LocalID, eventRepo storage.Event, syncRepo storage.Sync) Command {
+	return &Update{
+		localIDRepo: localIDRepo,
+		eventRepo:   eventRepo,
+		syncRepo:    syncRepo,
+		argSet: &ArgSet{
+			Flags: map[string]Flag{
+				FlagTitle: &FlagString{},
+				FlagOn:    &FlagDate{},
+				FlagAt:    &FlagTime{},
+				FlagFor:   &FlagDuration{},
+			},
+		},
 	}
-	return UpdateCmd
 }
 
-func Update(localRepo storage.LocalID, eventRepo storage.Event, syncRepo storage.Sync, localID int, nameStr, onStr, atStr, frStr string) error {
+func (update *Update) Execute(main []string, flags map[string]string) error {
+	if len(main) < 2 || main[0] != "update" {
+		return ErrWrongCommand
+	}
+	localID, err := strconv.Atoi(main[1])
+	if err != nil {
+		return fmt.Errorf("not a local id: %v", main[1])
+	}
+	update.localID = localID
+	main = main[2:]
+
+	as := update.argSet
+	as.Main = strings.Join(main, " ")
+	for k := range as.Flags {
+		v, ok := flags[k]
+		if !ok {
+			continue
+		}
+		if err := as.Set(k, v); err != nil {
+			return fmt.Errorf("could not set %s: %v", k, err)
+		}
+	}
+	update.argSet = as
+
+	return update.do()
+}
+
+func (update *Update) do() error {
+	as := update.argSet
 	var id string
-	idMap, err := localRepo.FindAll()
+	idMap, err := update.localIDRepo.FindAll()
 	if err != nil {
 		return fmt.Errorf("could not get local ids: %v", err)
 	}
 	for eid, lid := range idMap {
-		if localID == lid {
+		if update.localID == lid {
 			id = eid
 		}
 	}
@@ -63,39 +76,39 @@ func Update(localRepo storage.LocalID, eventRepo storage.Event, syncRepo storage
 		return fmt.Errorf("could not find local id")
 	}
 
-	e, err := eventRepo.Find(id)
+	e, err := update.eventRepo.Find(id)
 	if err != nil {
 		return fmt.Errorf("could not find event")
 	}
 
-	if nameStr != "" {
-		e.Title = nameStr
+	if as.Main != "" {
+		e.Title = as.Main
 	}
-	if onStr != "" || atStr != "" {
-		oldStart := e.Start
-		dateStr := oldStart.Format("2006-01-02")
-		if onStr != "" {
-			dateStr = onStr
+	if as.IsSet(FlagOn) || as.IsSet(FlagAt) {
+		on := time.Date(e.Start.Year(), e.Start.Month(), e.Start.Day(), 0, 0, 0, 0, time.UTC)
+		atH := time.Duration(e.Start.Hour()) * time.Hour
+		atM := time.Duration(e.Start.Minute()) * time.Minute
+
+		if as.IsSet(FlagOn) {
+			on = as.GetTime(FlagOn)
 		}
-		timeStr := oldStart.Format("15:04")
-		if atStr != "" {
-			timeStr = atStr
+		if as.IsSet(FlagAt) {
+			at := as.GetTime(FlagAt)
+			atH = time.Duration(at.Hour()) * time.Hour
+			atM = time.Duration(at.Minute()) * time.Minute
 		}
-		newStart, err := time.Parse("2006-01-02 15:04", fmt.Sprintf("%s %s", dateStr, timeStr))
-		if err != nil {
-			return fmt.Errorf("could not parse new start: %v", err)
-		}
-		e.Start = newStart
+		e.Start = on.Add(atH).Add(atM)
 	}
 
-	if frStr != "" { // no check on at, can set a duration with at 00:00, making it not a whole day
-		fr, err := time.ParseDuration(frStr)
-		if err != nil {
-			return fmt.Errorf("%w: could not parse duration: %s", ErrInvalidArg, err)
-		}
-		e.Duration = fr
+	if as.IsSet(FlagFor) {
+		e.Duration = as.GetDuration(FlagFor)
 	}
-	if err := eventRepo.Store(e); err != nil {
+
+	if !e.Valid() {
+		return fmt.Errorf("event is unvalid")
+	}
+
+	if err := update.eventRepo.Store(e); err != nil {
 		return fmt.Errorf("could not store event: %v", err)
 	}
 
@@ -103,7 +116,7 @@ func Update(localRepo storage.LocalID, eventRepo storage.Event, syncRepo storage
 	if err != nil {
 		return fmt.Errorf("could not convert event to sync item: %v", err)
 	}
-	if err := syncRepo.Store(it); err != nil {
+	if err := update.syncRepo.Store(it); err != nil {
 		return fmt.Errorf("could not store sync item: %v", err)
 	}
 
