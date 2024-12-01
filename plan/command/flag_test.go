@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"go-mod.ewintr.nl/planner/item"
 	"go-mod.ewintr.nl/planner/plan/command"
 )
 
@@ -106,6 +107,33 @@ func TestFlagDurationTime(t *testing.T) {
 	}
 
 	act, ok := f.Get().(time.Duration)
+	if !ok {
+		t.Errorf("exp true, got false")
+	}
+	if act != valid {
+		t.Errorf("exp %v, got %v", valid, act)
+	}
+}
+
+func TestFlagPeriod(t *testing.T) {
+	t.Parallel()
+
+	valid := item.PeriodMonth
+	validStr := "month"
+	f := command.FlagPeriod{}
+	if f.IsSet() {
+		t.Errorf("exp false, got true")
+	}
+
+	if err := f.Set(validStr); err != nil {
+		t.Errorf("exp nil, got %v", err)
+	}
+
+	if !f.IsSet() {
+		t.Errorf("exp true, got false")
+	}
+
+	act, ok := f.Get().(item.RecurPeriod)
 	if !ok {
 		t.Errorf("exp true, got false")
 	}

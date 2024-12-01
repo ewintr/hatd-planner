@@ -102,6 +102,46 @@ func TestAdd(t *testing.T) {
 			},
 			expErr: true,
 		},
+		{
+			name: "rec-start without rec-period",
+			main: []string{"add", "title"},
+			flags: map[string]string{
+				command.FlagOn:       aDateStr,
+				command.FlagRecStart: "2024-12-08",
+			},
+			expErr: true,
+		},
+		{
+			name: "rec-period without rec-start",
+			main: []string{"add", "title"},
+			flags: map[string]string{
+				command.FlagOn:        aDateStr,
+				command.FlagRecPeriod: "day",
+			},
+			expErr: true,
+		},
+		{
+			name: "rec-start with rec-period",
+			main: []string{"add", "title"},
+			flags: map[string]string{
+				command.FlagOn:        aDateStr,
+				command.FlagRecStart:  "2024-12-08",
+				command.FlagRecPeriod: "day",
+			},
+			expEvent: item.Event{
+				ID: "title",
+				Recurrer: &item.Recur{
+					Start:  time.Date(2024, 12, 8, 0, 0, 0, 0, time.UTC),
+					Period: item.PeriodDay,
+				},
+				RecurNext: time.Time{},
+				EventBody: item.EventBody{
+					Title:    "title",
+					Start:    aDate,
+					Duration: aDay,
+				},
+			},
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			eventRepo := memory.NewEvent()
@@ -140,7 +180,7 @@ func TestAdd(t *testing.T) {
 			}
 			tc.expEvent.ID = actEvents[0].ID
 			if diff := cmp.Diff(tc.expEvent, actEvents[0]); diff != "" {
-				t.Errorf("(exp +, got -)\n%s", diff)
+				t.Errorf("(exp -, got +)\n%s", diff)
 			}
 
 			updated, err := syncRepo.FindAll()

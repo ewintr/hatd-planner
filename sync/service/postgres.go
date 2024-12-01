@@ -19,6 +19,7 @@ var migrations = []string{
 	`CREATE TABLE items (id TEXT PRIMARY KEY, kind TEXT, updated TIMESTAMP, deleted BOOLEAN, body TEXT)`,
 	`CREATE INDEX idx_items_updated ON items(updated)`,
 	`CREATE INDEX idx_items_kind ON items(kind)`,
+	`ALTER TABLE items ADD COLUMN recurrer JSONB, ADD COLUMN recur_next TIMESTAMP`,
 }
 
 var (
@@ -56,16 +57,18 @@ func NewPostgres(host, port, dbname, user, password string) (*Postgres, error) {
 	return p, nil
 }
 
-func (p *Postgres) Update(item item.Item) error {
+func (p *Postgres) Update(item item.Item, ts time.Time) error {
 	_, err := p.db.Exec(`
-		INSERT INTO items (id, kind, updated, deleted, body)
-		VALUES ($1, $2, $3, $4, $5)
+		INSERT INTO items (id, kind, updated, deleted, body, recurrer, recur_next)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
 		ON CONFLICT (id) DO UPDATE
 		SET kind = EXCLUDED.kind,
 			updated = EXCLUDED.updated,
 			deleted = EXCLUDED.deleted,
-			body = EXCLUDED.body`,
-		item.ID, item.Kind, item.Updated, item.Deleted, item.Body)
+			body = EXCLUDED.body,
+			recurrer = EXCLUDED.recurrer,
+			recur_next = EXCLUDED.recur_next`,
+		item.ID, item.Kind, ts, item.Deleted, item.Body, item.Recurrer, item.RecurNext)
 	if err != nil {
 		return fmt.Errorf("%w: %v", ErrPostgresFailure, err)
 	}
@@ -74,7 +77,7 @@ func (p *Postgres) Update(item item.Item) error {
 
 func (p *Postgres) Updated(ks []item.Kind, t time.Time) ([]item.Item, error) {
 	query := `
-		SELECT id, kind, updated, deleted, body
+		SELECT id, kind, updated, deleted, body, recurrer, recur_next
 		FROM items
 		WHERE updated > $1`
 	args := []interface{}{t}
@@ -97,13 +100,79 @@ func (p *Postgres) Updated(ks []item.Kind, t time.Time) ([]item.Item, error) {
 	result := make([]item.Item, 0)
 	for rows.Next() {
 		var item item.Item
-		if err := rows.Scan(&item.ID, &item.Kind, &item.Updated, &item.Deleted, &item.Body); err != nil {
+		var recurNext sql.NullTime
+		if err := rows.Scan(&item.ID, &item.Kind, &item.Updated, &item.Deleted, &item.Body, &item.Recurrer, &recurNext); err != nil {
 			return nil, fmt.Errorf("%w: %v", ErrPostgresFailure, err)
+		}
+		if recurNext.Valid {
+			item.RecurNext = recurNext.Time
 		}
 		result = append(result, item)
 	}
 
 	return result, nil
+}
+
+func (p *Postgres) RecursBefore(date time.Time) ([]item.Item, error) {
+	query := `
+		SELECT id, kind, updated, deleted, body, recurrer, recur_next
+		FROM items
+		WHERE recur_next <= $1 AND recurrer IS NOT NULL`
+
+	rows, err := p.db.Query(query, date)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrPostgresFailure, err)
+	}
+	defer rows.Close()
+
+	result := make([]item.Item, 0)
+	for rows.Next() {
+		var item item.Item
+		var recurNext sql.NullTime
+		if err := rows.Scan(&item.ID, &item.Kind, &item.Updated, &item.Deleted, &item.Body, &item.Recurrer, &recurNext); err != nil {
+			return nil, fmt.Errorf("%w: %v", ErrPostgresFailure, err)
+		}
+		if recurNext.Valid {
+			item.RecurNext = recurNext.Time
+		}
+		result = append(result, item)
+	}
+
+	return result, nil
+}
+
+func (p *Postgres) RecursNext(id string, date time.Time, ts time.Time) error {
+	var recurrer *item.Recur
+	err := p.db.QueryRow(`
+		SELECT recurrer
+		FROM items
+		WHERE id = $1`, id).Scan(&recurrer)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return ErrNotFound
+		}
+		return fmt.Errorf("%w: %v", ErrPostgresFailure, err)
+	}
+
+	if recurrer == nil {
+		return ErrNotARecurrer
+	}
+
+	// Verify that the new date is actually a valid recurrence
+	if !recurrer.On(date) {
+		return fmt.Errorf("%w: date %v is not a valid recurrence", ErrPostgresFailure, date)
+	}
+
+	_, err = p.db.Exec(`
+		UPDATE items 
+		SET recur_next = $1,
+		  updated = $2  
+		WHERE id = $3`, date, ts, id)
+	if err != nil {
+		return fmt.Errorf("%w: %v", ErrPostgresFailure, err)
+	}
+
+	return nil
 }
 
 func (p *Postgres) migrate(wanted []string) error {

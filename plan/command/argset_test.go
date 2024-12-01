@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"go-mod.ewintr.nl/planner/item"
 	"go-mod.ewintr.nl/planner/plan/command"
 )
 
@@ -51,6 +52,15 @@ func TestArgSet(t *testing.T) {
 			flagName: "duration",
 			setValue: "2h30m",
 			exp:      2*time.Hour + 30*time.Minute,
+		},
+		{
+			name: "recur period flag success",
+			flags: map[string]command.Flag{
+				"period": &command.FlagPeriod{Name: "period"},
+			},
+			flagName: "period",
+			setValue: "month",
+			exp:      item.PeriodMonth,
 		},
 		{
 			name:     "unknown flag error",

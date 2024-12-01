@@ -48,6 +48,11 @@ func TestNewEvent(t *testing.T) {
 			it: item.Item{
 				ID:   "a",
 				Kind: item.KindEvent,
+				Recurrer: &item.Recur{
+					Start:  time.Date(2024, 12, 8, 9, 0, 0, 0, time.UTC),
+					Period: item.PeriodDay,
+					Count:  1,
+				},
 				Body: `{
   "title":"title",
   "start":"2024-09-20T08:00:00Z",
@@ -56,6 +61,11 @@ func TestNewEvent(t *testing.T) {
 			},
 			expEvent: item.Event{
 				ID: "a",
+				Recurrer: &item.Recur{
+					Start:  time.Date(2024, 12, 8, 9, 0, 0, 0, time.UTC),
+					Period: item.PeriodDay,
+					Count:  1,
+				},
 				EventBody: item.EventBody{
 					Title:    "title",
 					Start:    time.Date(2024, 9, 20, 8, 0, 0, 0, time.UTC),

@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 )
 
 var (
@@ -29,7 +30,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	logger.Info("configuration", "configuration", map[string]string{
 		"port":   *apiPort,
 		"dbHost": *dbHost,
@@ -37,6 +38,8 @@ func main() {
 		"dbName": *dbName,
 		"dbUser": *dbUser,
 	})
+	recurrer := NewRecur(repo, repo, logger)
+	go recurrer.Run(12 * time.Hour)
 
 	srv := NewServer(repo, *apiKey, logger)
 	go http.ListenAndServe(fmt.Sprintf(":%s", *apiPort), srv)

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"slices"
 	"sync"
 	"time"
@@ -19,10 +20,11 @@ func NewMemory() *Memory {
 	}
 }
 
-func (m *Memory) Update(item item.Item) error {
+func (m *Memory) Update(item item.Item, ts time.Time) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
+	item.Updated = ts
 	m.items[item.ID] = item
 
 	return nil
@@ -43,4 +45,35 @@ func (m *Memory) Updated(kinds []item.Kind, timestamp time.Time) ([]item.Item, e
 	}
 
 	return result, nil
+}
+
+func (m *Memory) RecursBefore(date time.Time) ([]item.Item, error) {
+	res := make([]item.Item, 0)
+	for _, i := range m.items {
+		if i.Recurrer == nil {
+			continue
+		}
+		if i.RecurNext.Before(date) {
+			res = append(res, i)
+		}
+	}
+	return res, nil
+}
+
+func (m *Memory) RecursNext(id string, date time.Time, ts time.Time) error {
+	i, ok := m.items[id]
+	if !ok {
+		return ErrNotFound
+	}
+	if i.Recurrer == nil {
+		return ErrNotARecurrer
+	}
+	if !i.Recurrer.On(date) {
+		return fmt.Errorf("item does not recur on %v", date)
+	}
+	i.RecurNext = date
+	i.Updated = ts
+	m.items[id] = i
+
+	return nil
 }

@@ -3,6 +3,8 @@ package command
 import (
 	"fmt"
 	"time"
+
+	"go-mod.ewintr.nl/planner/item"
 )
 
 type ArgSet struct {
@@ -58,6 +60,18 @@ func (as *ArgSet) GetDuration(name string) time.Duration {
 	val, ok := flag.Get().(time.Duration)
 	if !ok {
 		return time.Duration(0)
+	}
+	return val
+}
+
+func (as *ArgSet) GetRecurPeriod(name string) item.RecurPeriod {
+	flag, ok := as.Flags[name]
+	if !ok {
+		return item.RecurPeriod("")
+	}
+	val, ok := flag.Get().(item.RecurPeriod)
+	if !ok {
+		return item.RecurPeriod("")
 	}
 	return val
 }

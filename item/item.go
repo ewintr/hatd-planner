@@ -18,11 +18,13 @@ var (
 )
 
 type Item struct {
-	ID      string    `json:"id"`
-	Kind    Kind      `json:"kind"`
-	Updated time.Time `json:"updated"`
-	Deleted bool      `json:"deleted"`
-	Body    string    `json:"body"`
+	ID        string    `json:"id"`
+	Kind      Kind      `json:"kind"`
+	Updated   time.Time `json:"updated"`
+	Deleted   bool      `json:"deleted"`
+	Recurrer  *Recur    `json:"recurrer"`
+	RecurNext time.Time `json:"recurNext"`
+	Body      string    `json:"body"`
 }
 
 func NewItem(k Kind, body string) Item {

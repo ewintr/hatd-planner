@@ -3,7 +3,10 @@ package command
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"time"
+
+	"go-mod.ewintr.nl/planner/item"
 )
 
 const (
@@ -106,4 +109,25 @@ func (fd *FlagDuration) IsSet() bool {
 
 func (fs *FlagDuration) Get() any {
 	return fs.Value
+}
+
+type FlagPeriod struct {
+	Name  string
+	Value item.RecurPeriod
+}
+
+func (fp *FlagPeriod) Set(val string) error {
+	if !slices.Contains(item.ValidPeriods, item.RecurPeriod(val)) {
+		return fmt.Errorf("not a valid period: %v", val)
+	}
+	fp.Value = item.RecurPeriod(val)
+	return nil
+}
+
+func (fp *FlagPeriod) IsSet() bool {
+	return fp.Value != ""
+}
+
+func (fp *FlagPeriod) Get() any {
+	return fp.Value
 }

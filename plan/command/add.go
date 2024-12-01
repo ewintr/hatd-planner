@@ -24,9 +24,11 @@ func NewAdd(localRepo storage.LocalID, eventRepo storage.Event, syncRepo storage
 		syncRepo:    syncRepo,
 		argSet: &ArgSet{
 			Flags: map[string]Flag{
-				FlagOn:  &FlagDate{},
-				FlagAt:  &FlagTime{},
-				FlagFor: &FlagDuration{},
+				FlagOn:        &FlagDate{},
+				FlagAt:        &FlagTime{},
+				FlagFor:       &FlagDuration{},
+				FlagRecStart:  &FlagDate{},
+				FlagRecPeriod: &FlagPeriod{},
 			},
 		},
 	}
@@ -68,6 +70,9 @@ func (add *Add) Execute(main []string, flags map[string]string) error {
 			return fmt.Errorf("could not set duration to 24 hours")
 		}
 	}
+	if as.IsSet(FlagRecStart) != as.IsSet(FlagRecPeriod) {
+		return fmt.Errorf("rec-start required rec-period and vice versa")
+	}
 
 	return add.do()
 }
@@ -93,6 +98,13 @@ func (add *Add) do() error {
 	if as.IsSet(FlagFor) {
 		e.Duration = as.GetDuration(FlagFor)
 	}
+	if as.IsSet(FlagRecStart) {
+		e.Recurrer = &item.Recur{
+			Start:  as.GetTime(FlagRecStart),
+			Period: as.GetRecurPeriod(FlagRecPeriod),
+		}
+	}
+
 	if err := add.eventRepo.Store(e); err != nil {
 		return fmt.Errorf("could not store event: %v", err)
 	}

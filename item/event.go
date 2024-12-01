@@ -51,7 +51,9 @@ func (e *EventBody) UnmarshalJSON(data []byte) error {
 }
 
 type Event struct {
-	ID string `json:"id"`
+	ID        string    `json:"id"`
+	Recurrer  *Recur    `json:"recurrer"`
+	RecurNext time.Time `json:"recurNext"`
 	EventBody
 }
 
@@ -66,6 +68,8 @@ func NewEvent(i Item) (Event, error) {
 	}
 
 	e.ID = i.ID
+	e.Recurrer = i.Recurrer
+	e.RecurNext = i.RecurNext
 
 	return e, nil
 }
@@ -81,9 +85,11 @@ func (e Event) Item() (Item, error) {
 	}
 
 	return Item{
-		ID:   e.ID,
-		Kind: KindEvent,
-		Body: string(body),
+		ID:        e.ID,
+		Kind:      KindEvent,
+		Recurrer:  e.Recurrer,
+		RecurNext: e.RecurNext,
+		Body:      string(body),
 	}, nil
 }
 
@@ -95,6 +101,9 @@ func (e Event) Valid() bool {
 		return false
 	}
 	if e.Duration.Seconds() < 1 {
+		return false
+	}
+	if e.Recurrer != nil && !e.Recurrer.Valid() {
 		return false
 	}
 

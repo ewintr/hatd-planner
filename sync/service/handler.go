@@ -146,8 +146,7 @@ func (s *Server) SyncPost(w http.ResponseWriter, r *http.Request) {
 			s.logger.Info(msg)
 			return
 		}
-		it.Updated = time.Now()
-		if err := s.syncer.Update(it); err != nil {
+		if err := s.syncer.Update(it, time.Now()); err != nil {
 			msg := err.Error()
 			http.Error(w, fmtError(msg), http.StatusInternalServerError)
 			s.logger.Error(msg)

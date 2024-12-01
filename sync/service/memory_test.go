@@ -5,10 +5,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"go-mod.ewintr.nl/planner/item"
 )
 
-func TestMemoryItem(t *testing.T) {
+func TestMemoryUpdate(t *testing.T) {
 	t.Parallel()
 
 	mem := NewMemory()
@@ -24,7 +26,7 @@ func TestMemoryItem(t *testing.T) {
 
 	t.Log("add one")
 	t1 := item.NewItem(item.Kind("kinda"), "test")
-	if actErr := mem.Update(t1); actErr != nil {
+	if actErr := mem.Update(t1, t1.Updated); actErr != nil {
 		t.Errorf("exp nil, got %v", actErr)
 	}
 	actItems, actErr = mem.Updated([]item.Kind{}, time.Time{})
@@ -42,21 +44,17 @@ func TestMemoryItem(t *testing.T) {
 
 	t.Log("add second")
 	t2 := item.NewItem(item.Kind("kindb"), "test 2")
-	if actErr := mem.Update(t2); actErr != nil {
+	if actErr := mem.Update(t2, t2.Updated); actErr != nil {
 		t.Errorf("exp nil, got %v", actErr)
 	}
 	actItems, actErr = mem.Updated([]item.Kind{}, time.Time{})
 	if actErr != nil {
 		t.Errorf("exp nil, got %v", actErr)
 	}
-	if len(actItems) != 2 {
-		t.Errorf("exp 2, gor %d", len(actItems))
-	}
-	if actItems[0].ID != t1.ID {
-		t.Errorf("exp %v, got %v", actItems[0].ID, t1.ID)
-	}
-	if actItems[1].ID != t2.ID {
-		t.Errorf("exp %v, got %v", actItems[1].ID, t2.ID)
+	if diff := cmp.Diff([]item.Item{t1, t2}, actItems, cmpopts.SortSlices(func(i, j item.Item) bool {
+		return i.ID < j.ID
+	})); diff != "" {
+		t.Errorf("(exp +, got -)\n%s", diff)
 	}
 
 	actItems, actErr = mem.Updated([]item.Kind{}, before)
@@ -71,8 +69,7 @@ func TestMemoryItem(t *testing.T) {
 	}
 
 	t.Log("update first")
-	t1.Updated = time.Now()
-	if actErr := mem.Update(t1); actErr != nil {
+	if actErr := mem.Update(t1, time.Now()); actErr != nil {
 		t.Errorf("exp nil, got %v", actErr)
 	}
 	actItems, actErr = mem.Updated([]item.Kind{}, before)
@@ -107,5 +104,64 @@ func TestMemoryItem(t *testing.T) {
 	}
 	if actItems[0].ID != t1.ID {
 		t.Errorf("exp %v, got %v", t1.ID, actItems[0].ID)
+	}
+}
+
+func TestMemoryRecur(t *testing.T) {
+	t.Parallel()
+
+	mem := NewMemory()
+	now := time.Now()
+	earlier := now.Add(-5 * time.Minute)
+	today := time.Date(2024, 12, 1, 0, 0, 0, 0, time.UTC)
+	yesterday := time.Date(2024, 11, 30, 0, 0, 0, 0, time.UTC)
+	tomorrow := time.Date(2024, 12, 2, 0, 0, 0, 0, time.UTC)
+
+	t.Log("start")
+	i1 := item.Item{
+		ID:      "a",
+		Updated: earlier,
+		Recurrer: &item.Recur{
+			Start:  yesterday,
+			Period: item.PeriodDay,
+			Count:  1,
+		},
+		RecurNext: yesterday,
+	}
+	i2 := item.Item{
+		ID:      "b",
+		Updated: earlier,
+	}
+
+	for _, i := range []item.Item{i1, i2} {
+		if err := mem.Update(i, i.Updated); err != nil {
+			t.Errorf("exp nil, ot %v", err)
+		}
+	}
+
+	t.Log("get recurrers")
+	rs, err := mem.RecursBefore(today)
+	if err != nil {
+		t.Errorf("exp nil, gt %v", err)
+	}
+	if diff := cmp.Diff([]item.Item{i1}, rs); diff != "" {
+		t.Errorf("(exp +, got -)\n%s", diff)
+	}
+
+	t.Log("set next")
+	if err := mem.RecursNext(i1.ID, tomorrow, time.Now()); err != nil {
+		t.Errorf("exp nil, got %v", err)
+	}
+
+	t.Log("check result")
+	us, err := mem.Updated([]item.Kind{}, now)
+	if err != nil {
+		t.Errorf("exp nil, got %v", err)
+	}
+	if len(us) != 1 {
+		t.Errorf("exp 1, got %v", len(us))
+	}
+	if us[0].ID != i1.ID {
+		t.Errorf("exp %v, got %v", i1.ID, us[0].ID)
 	}
 }

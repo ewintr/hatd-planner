@@ -149,6 +149,58 @@ func TestUpdateExecute(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "invalid rec start",
+			main: []string{"update", fmt.Sprintf("%d", lid)},
+			flags: map[string]string{
+				"rec-start": "invalud",
+			},
+			expErr: true,
+		},
+		{
+			name: "valid rec start",
+			main: []string{"update", fmt.Sprintf("%d", lid)},
+			flags: map[string]string{
+				"rec-start": "2024-12-08",
+			},
+			expEvent: item.Event{
+				ID: eid,
+				Recurrer: &item.Recur{
+					Start: time.Date(2024, 12, 8, 0, 0, 0, 0, time.UTC),
+				},
+				EventBody: item.EventBody{
+					Title:    title,
+					Start:    start,
+					Duration: oneHour,
+				},
+			},
+		},
+		{
+			name: "invalid rec period",
+			main: []string{"update", fmt.Sprintf("%d", lid)},
+			flags: map[string]string{
+				"rec-period": "invalid",
+			},
+			expErr: true,
+		},
+		{
+			name: "valid rec period",
+			main: []string{"update", fmt.Sprintf("%d", lid)},
+			flags: map[string]string{
+				"rec-period": "month",
+			},
+			expEvent: item.Event{
+				ID: eid,
+				Recurrer: &item.Recur{
+					Period: item.PeriodMonth,
+				},
+				EventBody: item.EventBody{
+					Title:    title,
+					Start:    start,
+					Duration: oneHour,
+				},
+			},
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			eventRepo := memory.NewEvent()
@@ -182,7 +234,7 @@ func TestUpdateExecute(t *testing.T) {
 				t.Errorf("exp nil, got %v", err)
 			}
 			if diff := cmp.Diff(tc.expEvent, actEvent); diff != "" {
-				t.Errorf("(exp +, got -)\n%s", diff)
+				t.Errorf("(exp -, got +)\n%s", diff)
 			}
 			updated, err := syncRepo.FindAll()
 			if err != nil {

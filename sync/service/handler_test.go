@@ -65,7 +65,7 @@ func TestSyncGet(t *testing.T) {
 	}
 
 	for _, item := range items {
-		if err := mem.Update(item); err != nil {
+		if err := mem.Update(item, item.Updated); err != nil {
 			t.Errorf("exp nil, got %v", err)
 		}
 	}

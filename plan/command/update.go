@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"go-mod.ewintr.nl/planner/item"
 	"go-mod.ewintr.nl/planner/plan/storage"
 )
 
@@ -24,10 +25,12 @@ func NewUpdate(localIDRepo storage.LocalID, eventRepo storage.Event, syncRepo st
 		syncRepo:    syncRepo,
 		argSet: &ArgSet{
 			Flags: map[string]Flag{
-				FlagTitle: &FlagString{},
-				FlagOn:    &FlagDate{},
-				FlagAt:    &FlagTime{},
-				FlagFor:   &FlagDuration{},
+				FlagTitle:     &FlagString{},
+				FlagOn:        &FlagDate{},
+				FlagAt:        &FlagTime{},
+				FlagFor:       &FlagDuration{},
+				FlagRecStart:  &FlagDate{},
+				FlagRecPeriod: &FlagPeriod{},
 			},
 		},
 	}
@@ -102,6 +105,17 @@ func (update *Update) do() error {
 
 	if as.IsSet(FlagFor) {
 		e.Duration = as.GetDuration(FlagFor)
+	}
+	if as.IsSet(FlagRecStart) || as.IsSet(FlagRecPeriod) {
+		if e.Recurrer == nil {
+			e.Recurrer = &item.Recur{}
+		}
+		if as.IsSet(FlagRecStart) {
+			e.Recurrer.Start = as.GetTime(FlagRecStart)
+		}
+		if as.IsSet(FlagRecPeriod) {
+			e.Recurrer.Period = as.GetRecurPeriod(FlagRecPeriod)
+		}
 	}
 
 	if !e.Valid() {
