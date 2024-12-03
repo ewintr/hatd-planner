@@ -48,7 +48,7 @@ func main() {
 }
 
 type Configuration struct {
-	DBPath  string `yaml:"dbpath"`
+	DBPath  string `yaml:"db_path"`
 	SyncURL string `yaml:"sync_url"`
 	ApiKey  string `yaml:"api_key"`
 }
