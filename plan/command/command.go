@@ -33,6 +33,8 @@ func (cli *CLI) Run(args []string) error {
 			continue
 		case err != nil:
 			return err
+		default:
+			return nil
 		}
 	}
 
