@@ -37,14 +37,13 @@ func TestFlagString(t *testing.T) {
 func TestFlagDate(t *testing.T) {
 	t.Parallel()
 
-	valid := time.Date(2024, 11, 20, 0, 0, 0, 0, time.UTC)
-	validStr := "2024-11-20"
+	valid := item.NewDate(2024, 11, 20)
 	f := command.FlagDate{}
 	if f.IsSet() {
 		t.Errorf("exp false, got true")
 	}
 
-	if err := f.Set(validStr); err != nil {
+	if err := f.Set(valid.String()); err != nil {
 		t.Errorf("exp nil, got %v", err)
 	}
 
@@ -52,26 +51,25 @@ func TestFlagDate(t *testing.T) {
 		t.Errorf("exp true, got false")
 	}
 
-	act, ok := f.Get().(time.Time)
+	act, ok := f.Get().(item.Date)
 	if !ok {
 		t.Errorf("exp true, got false")
 	}
-	if act != valid {
-		t.Errorf("exp %v, got %v", valid, act)
+	if act.String() != valid.String() {
+		t.Errorf("exp %v, got %v", valid.String(), act.String())
 	}
 }
 
 func TestFlagTime(t *testing.T) {
 	t.Parallel()
 
-	valid := time.Date(0, 1, 1, 12, 30, 0, 0, time.UTC)
-	validStr := "12:30"
+	valid := item.NewTime(12, 30)
 	f := command.FlagTime{}
 	if f.IsSet() {
 		t.Errorf("exp false, got true")
 	}
 
-	if err := f.Set(validStr); err != nil {
+	if err := f.Set(valid.String()); err != nil {
 		t.Errorf("exp nil, got %v", err)
 	}
 
@@ -79,12 +77,12 @@ func TestFlagTime(t *testing.T) {
 		t.Errorf("exp true, got false")
 	}
 
-	act, ok := f.Get().(time.Time)
+	act, ok := f.Get().(item.Time)
 	if !ok {
 		t.Errorf("exp true, got false")
 	}
-	if act != valid {
-		t.Errorf("exp %v, got %v", valid, act)
+	if act.String() != valid.String() {
+		t.Errorf("exp %v, got %v", valid.String(), act.String())
 	}
 }
 
@@ -115,12 +113,12 @@ func TestFlagDurationTime(t *testing.T) {
 	}
 }
 
-func TestFlagPeriod(t *testing.T) {
+func TestFlagRecurrer(t *testing.T) {
 	t.Parallel()
 
-	valid := item.PeriodMonth
-	validStr := "month"
-	f := command.FlagPeriod{}
+	validStr := "2024-12-23, daily"
+	valid := item.NewRecurrer(validStr)
+	f := command.FlagRecurrer{}
 	if f.IsSet() {
 		t.Errorf("exp false, got true")
 	}
@@ -133,7 +131,7 @@ func TestFlagPeriod(t *testing.T) {
 		t.Errorf("exp true, got false")
 	}
 
-	act, ok := f.Get().(item.RecurPeriod)
+	act, ok := f.Get().(item.Recurrer)
 	if !ok {
 		t.Errorf("exp true, got false")
 	}

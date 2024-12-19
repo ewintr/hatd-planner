@@ -20,6 +20,13 @@ var migrations = []string{
 	`CREATE INDEX idx_items_updated ON items(updated)`,
 	`CREATE INDEX idx_items_kind ON items(kind)`,
 	`ALTER TABLE items ADD COLUMN recurrer JSONB, ADD COLUMN recur_next TIMESTAMP`,
+	`ALTER TABLE items ALTER COLUMN recurrer TYPE TEXT USING recurrer::TEXT,
+	    ALTER COLUMN recurrer SET NOT NULL,
+	    ALTER COLUMN recurrer SET DEFAULT ''`,
+	`ALTER TABLE items ALTER COLUMN recur_next TYPE TEXT USING TO_CHAR(recur_next, 'YYYY-MM-DD'),
+	    ALTER COLUMN recur_next SET NOT NULL,
+	    ALTER COLUMN recur_next SET DEFAULT ''`,
+	`ALTER TABLE items ADD COLUMN date TEXT NOT NULL DEFAULT ''`,
 }
 
 var (
@@ -35,13 +42,10 @@ type Postgres struct {
 
 func NewPostgres(host, port, dbname, user, password string) (*Postgres, error) {
 	connStr := fmt.Sprintf("host=%s port=%s dbname=%s user=%s password=%s sslmode=disable", host, port, dbname, user, password)
-
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrInvalidConfiguration, err)
 	}
-
-	// Test the connection
 	if err := db.Ping(); err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrInvalidConfiguration, err)
 	}
@@ -57,19 +61,26 @@ func NewPostgres(host, port, dbname, user, password string) (*Postgres, error) {
 	return p, nil
 }
 
-func (p *Postgres) Update(item item.Item, ts time.Time) error {
-	_, err := p.db.Exec(`
-		INSERT INTO items (id, kind, updated, deleted, body, recurrer, recur_next)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+func (p *Postgres) Update(i item.Item, ts time.Time) error {
+	if i.Recurrer != nil && i.RecurNext.IsZero() {
+		i.RecurNext = i.Recurrer.First()
+	}
+	var recurStr string
+	if i.Recurrer != nil {
+		recurStr = i.Recurrer.String()
+	}
+	if _, err := p.db.Exec(`
+		INSERT INTO items (id, kind, updated, deleted, date, recurrer, recur_next, body)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		ON CONFLICT (id) DO UPDATE
 		SET kind = EXCLUDED.kind,
 			updated = EXCLUDED.updated,
 			deleted = EXCLUDED.deleted,
-			body = EXCLUDED.body,
+			date = EXCLUDED.date,
 			recurrer = EXCLUDED.recurrer,
-			recur_next = EXCLUDED.recur_next`,
-		item.ID, item.Kind, ts, item.Deleted, item.Body, item.Recurrer, item.RecurNext)
-	if err != nil {
+			recur_next = EXCLUDED.recur_next,
+			body = EXCLUDED.body`,
+		i.ID, i.Kind, ts, i.Deleted, i.Date.String(), recurStr, i.RecurNext.String(), i.Body); err != nil {
 		return fmt.Errorf("%w: %v", ErrPostgresFailure, err)
 	}
 	return nil
@@ -77,11 +88,10 @@ func (p *Postgres) Update(item item.Item, ts time.Time) error {
 
 func (p *Postgres) Updated(ks []item.Kind, t time.Time) ([]item.Item, error) {
 	query := `
-		SELECT id, kind, updated, deleted, body, recurrer, recur_next
+		SELECT id, kind, updated, deleted, date, recurrer, recur_next, body
 		FROM items
 		WHERE updated > $1`
 	args := []interface{}{t}
-
 	if len(ks) > 0 {
 		placeholder := make([]string, len(ks))
 		for i := range ks {
@@ -99,27 +109,29 @@ func (p *Postgres) Updated(ks []item.Kind, t time.Time) ([]item.Item, error) {
 
 	result := make([]item.Item, 0)
 	for rows.Next() {
-		var item item.Item
-		var recurNext sql.NullTime
-		if err := rows.Scan(&item.ID, &item.Kind, &item.Updated, &item.Deleted, &item.Body, &item.Recurrer, &recurNext); err != nil {
+		var i item.Item
+		var date, recurrer, recurNext string
+		if err := rows.Scan(&i.ID, &i.Kind, &i.Updated, &i.Deleted, &date, &recurrer, &recurNext, &i.Body); err != nil {
 			return nil, fmt.Errorf("%w: %v", ErrPostgresFailure, err)
 		}
-		if recurNext.Valid {
-			item.RecurNext = recurNext.Time
-		}
-		result = append(result, item)
+		i.Date = item.NewDateFromString(date)
+		i.Recurrer = item.NewRecurrer(recurrer)
+		i.RecurNext = item.NewDateFromString(recurNext)
+		result = append(result, i)
 	}
 
 	return result, nil
 }
 
-func (p *Postgres) RecursBefore(date time.Time) ([]item.Item, error) {
+func (p *Postgres) ShouldRecur(date item.Date) ([]item.Item, error) {
 	query := `
-		SELECT id, kind, updated, deleted, body, recurrer, recur_next
+		SELECT id, kind, updated, deleted, date, recurrer, recur_next, body
 		FROM items
-		WHERE recur_next <= $1 AND recurrer IS NOT NULL`
-
-	rows, err := p.db.Query(query, date)
+		WHERE
+		  NOT deleted 
+		  AND recurrer <> ''
+		  AND recur_next <= $1`
+	rows, err := p.db.Query(query, date.String())
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrPostgresFailure, err)
 	}
@@ -127,52 +139,18 @@ func (p *Postgres) RecursBefore(date time.Time) ([]item.Item, error) {
 
 	result := make([]item.Item, 0)
 	for rows.Next() {
-		var item item.Item
-		var recurNext sql.NullTime
-		if err := rows.Scan(&item.ID, &item.Kind, &item.Updated, &item.Deleted, &item.Body, &item.Recurrer, &recurNext); err != nil {
+		var i item.Item
+		var date, recurrer, recurNext string
+		if err := rows.Scan(&i.ID, &i.Kind, &i.Updated, &i.Deleted, &date, &recurrer, &recurNext, &i.Body); err != nil {
 			return nil, fmt.Errorf("%w: %v", ErrPostgresFailure, err)
 		}
-		if recurNext.Valid {
-			item.RecurNext = recurNext.Time
-		}
-		result = append(result, item)
+		i.Date = item.NewDateFromString(date)
+		i.Recurrer = item.NewRecurrer(recurrer)
+		i.RecurNext = item.NewDateFromString(recurNext)
+		result = append(result, i)
 	}
 
 	return result, nil
-}
-
-func (p *Postgres) RecursNext(id string, date time.Time, ts time.Time) error {
-	var recurrer *item.Recur
-	err := p.db.QueryRow(`
-		SELECT recurrer
-		FROM items
-		WHERE id = $1`, id).Scan(&recurrer)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return ErrNotFound
-		}
-		return fmt.Errorf("%w: %v", ErrPostgresFailure, err)
-	}
-
-	if recurrer == nil {
-		return ErrNotARecurrer
-	}
-
-	// Verify that the new date is actually a valid recurrence
-	if !recurrer.On(date) {
-		return fmt.Errorf("%w: date %v is not a valid recurrence", ErrPostgresFailure, date)
-	}
-
-	_, err = p.db.Exec(`
-		UPDATE items 
-		SET recur_next = $1,
-		  updated = $2  
-		WHERE id = $3`, date, ts, id)
-	if err != nil {
-		return fmt.Errorf("%w: %v", ErrPostgresFailure, err)
-	}
-
-	return nil
 }
 
 func (p *Postgres) migrate(wanted []string) error {

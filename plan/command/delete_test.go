@@ -3,7 +3,6 @@ package command_test
 import (
 	"errors"
 	"testing"
-	"time"
 
 	"go-mod.ewintr.nl/planner/item"
 	"go-mod.ewintr.nl/planner/plan/command"
@@ -15,10 +14,10 @@ func TestDelete(t *testing.T) {
 	t.Parallel()
 
 	e := item.Event{
-		ID: "id",
+		ID:   "id",
+		Date: item.NewDate(2024, 10, 7),
 		EventBody: item.EventBody{
 			Title: "name",
-			Start: time.Date(2024, 10, 7, 9, 30, 0, 0, time.UTC),
 		},
 	}
 

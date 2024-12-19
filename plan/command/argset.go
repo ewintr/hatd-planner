@@ -40,14 +40,26 @@ func (as *ArgSet) GetString(name string) string {
 	return val
 }
 
-func (as *ArgSet) GetTime(name string) time.Time {
+func (as *ArgSet) GetDate(name string) item.Date {
 	flag, ok := as.Flags[name]
 	if !ok {
-		return time.Time{}
+		return item.Date{}
 	}
-	val, ok := flag.Get().(time.Time)
+	val, ok := flag.Get().(item.Date)
 	if !ok {
-		return time.Time{}
+		return item.Date{}
+	}
+	return val
+}
+
+func (as *ArgSet) GetTime(name string) item.Time {
+	flag, ok := as.Flags[name]
+	if !ok {
+		return item.Time{}
+	}
+	val, ok := flag.Get().(item.Time)
+	if !ok {
+		return item.Time{}
 	}
 	return val
 }
@@ -64,14 +76,26 @@ func (as *ArgSet) GetDuration(name string) time.Duration {
 	return val
 }
 
-func (as *ArgSet) GetRecurPeriod(name string) item.RecurPeriod {
+func (as *ArgSet) GetRecurrer(name string) item.Recurrer {
 	flag, ok := as.Flags[name]
 	if !ok {
-		return item.RecurPeriod("")
+		return nil
 	}
-	val, ok := flag.Get().(item.RecurPeriod)
+	val, ok := flag.Get().(item.Recurrer)
 	if !ok {
-		return item.RecurPeriod("")
+		return nil
+	}
+	return val
+}
+
+func (as *ArgSet) GetInt(name string) int {
+	flag, ok := as.Flags[name]
+	if !ok {
+		return 0
+	}
+	val, ok := flag.Get().(int)
+	if !ok {
+		return 0
 	}
 	return val
 }

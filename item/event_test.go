@@ -25,11 +25,12 @@ func TestNewEvent(t *testing.T) {
 			name: "wrong kind",
 			it: item.Item{
 				ID:   "a",
+				Date: item.NewDate(2024, 9, 20),
 				Kind: item.KindTask,
 				Body: `{
   "title":"title",
-  "start":"2024-09-20T08:00:00Z",
-  "duration":"1h" 
+  "time":"08:00",
+  "duration":"1h"
 }`,
 			},
 			expErr: true,
@@ -46,29 +47,23 @@ func TestNewEvent(t *testing.T) {
 		{
 			name: "valid",
 			it: item.Item{
-				ID:   "a",
-				Kind: item.KindEvent,
-				Recurrer: &item.Recur{
-					Start:  time.Date(2024, 12, 8, 9, 0, 0, 0, time.UTC),
-					Period: item.PeriodDay,
-					Count:  1,
-				},
+				ID:       "a",
+				Kind:     item.KindEvent,
+				Date:     item.NewDate(2024, 9, 20),
+				Recurrer: item.NewRecurrer("2024-12-08, daily"),
 				Body: `{
   "title":"title",
-  "start":"2024-09-20T08:00:00Z",
-  "duration":"1h" 
+  "time":"08:00",
+  "duration":"1h"
 }`,
 			},
 			expEvent: item.Event{
-				ID: "a",
-				Recurrer: &item.Recur{
-					Start:  time.Date(2024, 12, 8, 9, 0, 0, 0, time.UTC),
-					Period: item.PeriodDay,
-					Count:  1,
-				},
+				ID:       "a",
+				Date:     item.NewDate(2024, 9, 20),
+				Recurrer: item.NewRecurrer("2024-12-08, daily"),
 				EventBody: item.EventBody{
 					Title:    "title",
-					Start:    time.Date(2024, 9, 20, 8, 0, 0, 0, time.UTC),
+					Time:     item.NewTime(8, 0),
 					Duration: oneHour,
 				},
 			},
@@ -82,8 +77,8 @@ func TestNewEvent(t *testing.T) {
 			if tc.expErr {
 				return
 			}
-			if diff := cmp.Diff(tc.expEvent, actEvent); diff != "" {
-				t.Errorf("(exp +, got -)\n%s", diff)
+			if diff := item.EventDiff(tc.expEvent, actEvent); diff != "" {
+				t.Errorf("(+exp, -got)\n%s", diff)
 			}
 		})
 	}
@@ -107,16 +102,17 @@ func TestEventItem(t *testing.T) {
 			expItem: item.Item{
 				Kind:    item.KindEvent,
 				Updated: time.Time{},
-				Body:    `{"start":"0001-01-01T00:00:00Z","duration":"0s","title":""}`,
+				Body:    `{"duration":"0s","title":"","time":"00:00"}`,
 			},
 		},
 		{
 			name: "normal",
 			event: item.Event{
-				ID: "a",
+				ID:   "a",
+				Date: item.NewDate(2024, 9, 23),
 				EventBody: item.EventBody{
 					Title:    "title",
-					Start:    time.Date(2024, 9, 23, 8, 0, 0, 0, time.UTC),
+					Time:     item.NewTime(8, 0),
 					Duration: oneHour,
 				},
 			},
@@ -124,7 +120,8 @@ func TestEventItem(t *testing.T) {
 				ID:      "a",
 				Kind:    item.KindEvent,
 				Updated: time.Time{},
-				Body:    `{"start":"2024-09-23T08:00:00Z","duration":"1h0m0s","title":"title"}`,
+				Date:    item.NewDate(2024, 9, 23),
+				Body:    `{"duration":"1h0m0s","title":"title","time":"08:00"}`,
 			},
 		},
 	} {
@@ -162,9 +159,10 @@ func TestEventValidate(t *testing.T) {
 		{
 			name: "missing title",
 			event: item.Event{
-				ID: "a",
+				ID:   "a",
+				Date: item.NewDate(2024, 9, 20),
 				EventBody: item.EventBody{
-					Start:    time.Date(2024, 9, 20, 8, 0, 0, 0, time.UTC),
+					Time:     item.NewTime(8, 0),
 					Duration: oneHour,
 				},
 			},
@@ -175,7 +173,7 @@ func TestEventValidate(t *testing.T) {
 				ID: "a",
 				EventBody: item.EventBody{
 					Title:    "title",
-					Start:    time.Date(0, 0, 0, 8, 0, 0, 0, time.UTC),
+					Time:     item.NewTime(8, 0),
 					Duration: oneHour,
 				},
 			},
@@ -183,20 +181,22 @@ func TestEventValidate(t *testing.T) {
 		{
 			name: "no duration",
 			event: item.Event{
-				ID: "a",
+				ID:   "a",
+				Date: item.NewDate(2024, 9, 20),
 				EventBody: item.EventBody{
 					Title: "title",
-					Start: time.Date(2024, 9, 20, 8, 0, 0, 0, time.UTC),
+					Time:  item.NewTime(8, 0),
 				},
 			},
 		},
 		{
 			name: "valid",
 			event: item.Event{
-				ID: "a",
+				ID:   "a",
+				Date: item.NewDate(2024, 9, 20),
 				EventBody: item.EventBody{
 					Title:    "title",
-					Start:    time.Date(2024, 9, 20, 8, 0, 0, 0, time.UTC),
+					Time:     item.NewTime(8, 0),
 					Duration: oneHour,
 				},
 			},

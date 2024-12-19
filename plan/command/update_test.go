@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
 	"go-mod.ewintr.nl/planner/item"
 	"go-mod.ewintr.nl/planner/plan/command"
 	"go-mod.ewintr.nl/planner/plan/storage/memory"
@@ -21,7 +20,8 @@ func TestUpdateExecute(t *testing.T) {
 		t.Errorf("exp nil, got %v", err)
 	}
 	title := "title"
-	start := time.Date(2024, 10, 6, 10, 0, 0, 0, time.UTC)
+	aDate := item.NewDate(2024, 10, 6)
+	aTime := item.NewTime(10, 0)
 	twoHour, err := time.ParseDuration("2h")
 	if err != nil {
 		t.Errorf("exp nil, got %v", err)
@@ -49,10 +49,11 @@ func TestUpdateExecute(t *testing.T) {
 			localID: lid,
 			main:    []string{"update", fmt.Sprintf("%d", lid), "updated"},
 			expEvent: item.Event{
-				ID: eid,
+				ID:   eid,
+				Date: item.NewDate(2024, 10, 6),
 				EventBody: item.EventBody{
 					Title:    "updated",
-					Start:    start,
+					Time:     aTime,
 					Duration: oneHour,
 				},
 			},
@@ -74,10 +75,11 @@ func TestUpdateExecute(t *testing.T) {
 				"on": "2024-10-02",
 			},
 			expEvent: item.Event{
-				ID: eid,
+				ID:   eid,
+				Date: item.NewDate(2024, 10, 2),
 				EventBody: item.EventBody{
 					Title:    title,
-					Start:    time.Date(2024, 10, 2, 10, 0, 0, 0, time.UTC),
+					Time:     aTime,
 					Duration: oneHour,
 				},
 			},
@@ -99,10 +101,11 @@ func TestUpdateExecute(t *testing.T) {
 				"at": "11:00",
 			},
 			expEvent: item.Event{
-				ID: eid,
+				ID:   eid,
+				Date: item.NewDate(2024, 10, 6),
 				EventBody: item.EventBody{
 					Title:    title,
-					Start:    time.Date(2024, 10, 6, 11, 0, 0, 0, time.UTC),
+					Time:     item.NewTime(11, 0),
 					Duration: oneHour,
 				},
 			},
@@ -116,10 +119,11 @@ func TestUpdateExecute(t *testing.T) {
 				"at": "11:00",
 			},
 			expEvent: item.Event{
-				ID: eid,
+				ID:   eid,
+				Date: item.NewDate(2024, 10, 2),
 				EventBody: item.EventBody{
 					Title:    title,
-					Start:    time.Date(2024, 10, 2, 11, 0, 0, 0, time.UTC),
+					Time:     item.NewTime(11, 0),
 					Duration: oneHour,
 				},
 			},
@@ -141,62 +145,36 @@ func TestUpdateExecute(t *testing.T) {
 				"for": "2h",
 			},
 			expEvent: item.Event{
-				ID: eid,
+				ID:   eid,
+				Date: item.NewDate(2024, 10, 6),
 				EventBody: item.EventBody{
 					Title:    title,
-					Start:    time.Date(2024, 10, 6, 10, 0, 0, 0, time.UTC),
+					Time:     aTime,
 					Duration: twoHour,
 				},
 			},
 		},
 		{
-			name: "invalid rec start",
+			name: "invalid rec",
 			main: []string{"update", fmt.Sprintf("%d", lid)},
 			flags: map[string]string{
-				"rec-start": "invalud",
+				"rec": "invalud",
 			},
 			expErr: true,
 		},
 		{
-			name: "valid rec start",
+			name: "valid rec",
 			main: []string{"update", fmt.Sprintf("%d", lid)},
 			flags: map[string]string{
-				"rec-start": "2024-12-08",
+				"rec": "2024-12-08, daily",
 			},
 			expEvent: item.Event{
-				ID: eid,
-				Recurrer: &item.Recur{
-					Start: time.Date(2024, 12, 8, 0, 0, 0, 0, time.UTC),
-				},
+				ID:       eid,
+				Date:     aDate,
+				Recurrer: item.NewRecurrer("2024-12-08, daily"),
 				EventBody: item.EventBody{
 					Title:    title,
-					Start:    start,
-					Duration: oneHour,
-				},
-			},
-		},
-		{
-			name: "invalid rec period",
-			main: []string{"update", fmt.Sprintf("%d", lid)},
-			flags: map[string]string{
-				"rec-period": "invalid",
-			},
-			expErr: true,
-		},
-		{
-			name: "valid rec period",
-			main: []string{"update", fmt.Sprintf("%d", lid)},
-			flags: map[string]string{
-				"rec-period": "month",
-			},
-			expEvent: item.Event{
-				ID: eid,
-				Recurrer: &item.Recur{
-					Period: item.PeriodMonth,
-				},
-				EventBody: item.EventBody{
-					Title:    title,
-					Start:    start,
+					Time:     aTime,
 					Duration: oneHour,
 				},
 			},
@@ -207,10 +185,11 @@ func TestUpdateExecute(t *testing.T) {
 			localIDRepo := memory.NewLocalID()
 			syncRepo := memory.NewSync()
 			if err := eventRepo.Store(item.Event{
-				ID: eid,
+				ID:   eid,
+				Date: aDate,
 				EventBody: item.EventBody{
 					Title:    title,
-					Start:    start,
+					Time:     aTime,
 					Duration: oneHour,
 				},
 			}); err != nil {
@@ -233,7 +212,7 @@ func TestUpdateExecute(t *testing.T) {
 			if err != nil {
 				t.Errorf("exp nil, got %v", err)
 			}
-			if diff := cmp.Diff(tc.expEvent, actEvent); diff != "" {
+			if diff := item.EventDiff(tc.expEvent, actEvent); diff != "" {
 				t.Errorf("(exp -, got +)\n%s", diff)
 			}
 			updated, err := syncRepo.FindAll()

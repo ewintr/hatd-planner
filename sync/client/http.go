@@ -45,7 +45,8 @@ func (c *HTTP) Update(items []item.Item) error {
 		return fmt.Errorf("could not make request: %v", err)
 	}
 	if res.StatusCode != http.StatusNoContent {
-		return fmt.Errorf("server returned status %d", res.StatusCode)
+		body, _ := io.ReadAll(res.Body)
+		return fmt.Errorf("server returned status %d, body: %s", res.StatusCode, body)
 	}
 
 	return nil

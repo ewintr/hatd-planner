@@ -1,0 +1,3 @@
+db_path: ./plan.db
+sync_url: http://localhost:8092
+api_key: testKey

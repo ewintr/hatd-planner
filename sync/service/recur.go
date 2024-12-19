@@ -35,34 +35,31 @@ func (r *Recur) Run(interval time.Duration) {
 }
 
 func (r *Recur) Recur() error {
-	items, err := r.repoRecur.RecursBefore(time.Now())
+	r.logger.Info("start looking for recurring items")
+	today := item.NewDateFromString(time.Now().Format(item.DateFormat))
+	items, err := r.repoRecur.ShouldRecur(today)
 	if err != nil {
 		return err
 	}
+	r.logger.Info("found recurring items", "count", len(items))
 	for _, i := range items {
+		r.logger.Info("processing recurring item", "id", i.ID)
 		// spawn instance
-		ne, err := item.NewEvent(i)
-		if err != nil {
-			return err
-		}
-		y, m, d := i.RecurNext.Date()
-		ne.ID = uuid.New().String()
-		ne.Recurrer = nil
-		ne.RecurNext = time.Time{}
-		ne.Start = time.Date(y, m, d, ne.Start.Hour(), ne.Start.Minute(), 0, 0, time.UTC)
-
-		ni, err := ne.Item()
-		if err != nil {
-			return err
-		}
-		if err := r.repoSync.Update(ni, time.Now()); err != nil {
+		newItem := i
+		newItem.ID = uuid.New().String()
+		newItem.Date = i.RecurNext
+		newItem.Recurrer = nil
+		newItem.RecurNext = item.Date{}
+		if err := r.repoSync.Update(newItem, time.Now()); err != nil {
 			return err
 		}
 
-		// set next
-		if err := r.repoRecur.RecursNext(i.ID, i.Recurrer.NextAfter(i.RecurNext), time.Now()); err != nil {
+		// update recurrer
+		i.RecurNext = item.FirstRecurAfter(i.Recurrer, i.RecurNext)
+		if err := r.repoSync.Update(i, time.Now()); err != nil {
 			return err
 		}
+		r.logger.Info("recurring item processed", "id", i.ID, "recurNext", i.RecurNext.String())
 	}
 	r.logger.Info("processed recurring items", "count", len(items))
 

@@ -14,18 +14,25 @@ type SqliteEvent struct {
 }
 
 func (s *SqliteEvent) Store(event item.Event) error {
+	var recurStr string
+	if event.Recurrer != nil {
+		recurStr = event.Recurrer.String()
+	}
 	if _, err := s.db.Exec(`
 INSERT INTO events
-(id, title, start, duration)
+(id, title, date, time, duration, recurrer)
 VALUES
-(?, ?, ?, ?)
+(?, ?, ?, ?, ?, ?)
 ON CONFLICT(id) DO UPDATE
 SET
 title=?,
-start=?,
-duration=?`,
-		event.ID, event.Title, event.Start.Format(timestampFormat), event.Duration.String(),
-		event.Title, event.Start.Format(timestampFormat), event.Duration.String()); err != nil {
+date=?,
+time=?,
+duration=?,
+recurrer=?
+`,
+		event.ID, event.Title, event.Date.String(), event.Time.String(), event.Duration.String(), recurStr,
+		event.Title, event.Date.String(), event.Time.String(), event.Duration.String(), recurStr); err != nil {
 		return fmt.Errorf("%w: %v", ErrSqliteFailure, err)
 	}
 	return nil
@@ -33,29 +40,32 @@ duration=?`,
 
 func (s *SqliteEvent) Find(id string) (item.Event, error) {
 	var event item.Event
-	var durStr string
+	var dateStr, timeStr, recurStr, durStr string
 	err := s.db.QueryRow(`
-SELECT id, title, start, duration
+SELECT id, title, date, time, duration, recurrer
 FROM events
-WHERE id = ?`, id).Scan(&event.ID, &event.Title, &event.Start, &durStr)
+WHERE id = ?`, id).Scan(&event.ID, &event.Title, &dateStr, &timeStr, &durStr, &recurStr)
 	switch {
 	case err == sql.ErrNoRows:
 		return item.Event{}, fmt.Errorf("event not found: %w", err)
 	case err != nil:
 		return item.Event{}, fmt.Errorf("%w: %v", ErrSqliteFailure, err)
 	}
+	event.Date = item.NewDateFromString(dateStr)
+	event.Time = item.NewTimeFromString(timeStr)
 	dur, err := time.ParseDuration(durStr)
 	if err != nil {
-		return item.Event{}, fmt.Errorf("%w: %v", ErrSqliteFailure, err)
+		return item.Event{}, fmt.Errorf("could not unmarshal recurrer: %v", err)
 	}
 	event.Duration = dur
+	event.Recurrer = item.NewRecurrer(recurStr)
 
 	return event, nil
 }
 
 func (s *SqliteEvent) FindAll() ([]item.Event, error) {
 	rows, err := s.db.Query(`
-SELECT id, title, start, duration
+SELECT id, title, date, time, duration, recurrer
 FROM events`)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrSqliteFailure, err)
@@ -64,15 +74,19 @@ FROM events`)
 	defer rows.Close()
 	for rows.Next() {
 		var event item.Event
-		var durStr string
-		if err := rows.Scan(&event.ID, &event.Title, &event.Start, &durStr); err != nil {
+		var dateStr, timeStr, recurStr, durStr string
+		if err := rows.Scan(&event.ID, &event.Title, &dateStr, &timeStr, &durStr, &recurStr); err != nil {
 			return nil, fmt.Errorf("%w: %v", ErrSqliteFailure, err)
 		}
 		dur, err := time.ParseDuration(durStr)
 		if err != nil {
 			return nil, fmt.Errorf("%w: %v", ErrSqliteFailure, err)
 		}
+		event.Date = item.NewDateFromString(dateStr)
+		event.Time = item.NewTimeFromString(timeStr)
 		event.Duration = dur
+		event.Recurrer = item.NewRecurrer(recurStr)
+
 		result = append(result, event)
 	}
 

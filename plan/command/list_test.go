@@ -2,7 +2,6 @@ package command_test
 
 import (
 	"testing"
-	"time"
 
 	"go-mod.ewintr.nl/planner/item"
 	"go-mod.ewintr.nl/planner/plan/command"
@@ -15,10 +14,10 @@ func TestList(t *testing.T) {
 	eventRepo := memory.NewEvent()
 	localRepo := memory.NewLocalID()
 	e := item.Event{
-		ID: "id",
+		ID:   "id",
+		Date: item.NewDate(2024, 10, 7),
 		EventBody: item.EventBody{
 			Title: "name",
-			Start: time.Date(2024, 10, 7, 9, 30, 0, 0, time.UTC),
 		},
 	}
 	if err := eventRepo.Store(e); err != nil {

@@ -18,6 +18,5 @@ type Syncer interface {
 }
 
 type Recurrer interface {
-	RecursBefore(date time.Time) ([]item.Item, error)
-	RecursNext(id string, date time.Time, t time.Time) error
+	ShouldRecur(date item.Date) ([]item.Item, error)
 }

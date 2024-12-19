@@ -4,22 +4,22 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 type EventBody struct {
 	Title    string        `json:"title"`
-	Start    time.Time     `json:"start"`
+	Time     Time          `json:"time"`
 	Duration time.Duration `json:"duration"`
 }
 
 func (e EventBody) MarshalJSON() ([]byte, error) {
 	type Alias EventBody
 	return json.Marshal(&struct {
-		Start    string `json:"start"`
 		Duration string `json:"duration"`
 		*Alias
 	}{
-		Start:    e.Start.UTC().Format(time.RFC3339),
 		Duration: e.Duration.String(),
 		Alias:    (*Alias)(&e),
 	})
@@ -28,7 +28,6 @@ func (e EventBody) MarshalJSON() ([]byte, error) {
 func (e *EventBody) UnmarshalJSON(data []byte) error {
 	type Alias EventBody
 	aux := &struct {
-		Start    string `json:"start"`
 		Duration string `json:"duration"`
 		*Alias
 	}{
@@ -39,10 +38,6 @@ func (e *EventBody) UnmarshalJSON(data []byte) error {
 	}
 
 	var err error
-	if e.Start, err = time.Parse(time.RFC3339, aux.Start); err != nil {
-		return err
-	}
-
 	if e.Duration, err = time.ParseDuration(aux.Duration); err != nil {
 		return err
 	}
@@ -51,9 +46,10 @@ func (e *EventBody) UnmarshalJSON(data []byte) error {
 }
 
 type Event struct {
-	ID        string    `json:"id"`
-	Recurrer  *Recur    `json:"recurrer"`
-	RecurNext time.Time `json:"recurNext"`
+	ID        string   `json:"id"`
+	Date      Date     `json:"date"`
+	Recurrer  Recurrer `json:"recurrer"`
+	RecurNext Date     `json:"recurNext"`
 	EventBody
 }
 
@@ -68,6 +64,7 @@ func NewEvent(i Item) (Event, error) {
 	}
 
 	e.ID = i.ID
+	e.Date = i.Date
 	e.Recurrer = i.Recurrer
 	e.RecurNext = i.RecurNext
 
@@ -75,18 +72,15 @@ func NewEvent(i Item) (Event, error) {
 }
 
 func (e Event) Item() (Item, error) {
-	body, err := json.Marshal(EventBody{
-		Title:    e.Title,
-		Start:    e.Start,
-		Duration: e.Duration,
-	})
+	body, err := json.Marshal(e.EventBody)
 	if err != nil {
-		return Item{}, fmt.Errorf("could not marshal event to json")
+		return Item{}, fmt.Errorf("could not marshal event body to json")
 	}
 
 	return Item{
 		ID:        e.ID,
 		Kind:      KindEvent,
+		Date:      e.Date,
 		Recurrer:  e.Recurrer,
 		RecurNext: e.RecurNext,
 		Body:      string(body),
@@ -97,15 +91,26 @@ func (e Event) Valid() bool {
 	if e.Title == "" {
 		return false
 	}
-	if e.Start.IsZero() || e.Start.Year() < 2024 {
+	if e.Date.IsZero() {
 		return false
 	}
 	if e.Duration.Seconds() < 1 {
 		return false
 	}
-	if e.Recurrer != nil && !e.Recurrer.Valid() {
-		return false
-	}
 
 	return true
+}
+
+func EventDiff(a, b Event) string {
+	aJSON, _ := json.Marshal(a)
+	bJSON, _ := json.Marshal(b)
+
+	return cmp.Diff(string(aJSON), string(bJSON))
+}
+
+func EventDiffs(a, b []Event) string {
+	aJSON, _ := json.Marshal(a)
+	bJSON, _ := json.Marshal(b)
+
+	return cmp.Diff(string(aJSON), string(bJSON))
 }

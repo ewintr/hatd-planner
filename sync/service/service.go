@@ -39,7 +39,7 @@ func main() {
 		"dbUser": *dbUser,
 	})
 	recurrer := NewRecur(repo, repo, logger)
-	go recurrer.Run(12 * time.Hour)
+	go recurrer.Run(10 * time.Second)
 
 	srv := NewServer(repo, *apiKey, logger)
 	go http.ListenAndServe(fmt.Sprintf(":%s", *apiPort), srv)

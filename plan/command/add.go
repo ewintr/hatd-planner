@@ -3,7 +3,6 @@ package command
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/google/uuid"
 	"go-mod.ewintr.nl/planner/item"
@@ -24,11 +23,10 @@ func NewAdd(localRepo storage.LocalID, eventRepo storage.Event, syncRepo storage
 		syncRepo:    syncRepo,
 		argSet: &ArgSet{
 			Flags: map[string]Flag{
-				FlagOn:        &FlagDate{},
-				FlagAt:        &FlagTime{},
-				FlagFor:       &FlagDuration{},
-				FlagRecStart:  &FlagDate{},
-				FlagRecPeriod: &FlagPeriod{},
+				FlagOn:  &FlagDate{},
+				FlagAt:  &FlagTime{},
+				FlagFor: &FlagDuration{},
+				FlagRec: &FlagRecurrer{},
 			},
 		},
 	}
@@ -70,39 +68,25 @@ func (add *Add) Execute(main []string, flags map[string]string) error {
 			return fmt.Errorf("could not set duration to 24 hours")
 		}
 	}
-	if as.IsSet(FlagRecStart) != as.IsSet(FlagRecPeriod) {
-		return fmt.Errorf("rec-start required rec-period and vice versa")
-	}
 
 	return add.do()
 }
 
 func (add *Add) do() error {
 	as := add.argSet
-	start := as.GetTime(FlagOn)
-	if as.IsSet(FlagAt) {
-		at := as.GetTime(FlagAt)
-		h := time.Duration(at.Hour()) * time.Hour
-		m := time.Duration(at.Minute()) * time.Minute
-		start = start.Add(h).Add(m)
-	}
-
+	rec := as.GetRecurrer(FlagRec)
 	e := item.Event{
-		ID: uuid.New().String(),
+		ID:       uuid.New().String(),
+		Date:     as.GetDate(FlagOn),
+		Recurrer: rec,
 		EventBody: item.EventBody{
-			Title: as.Main,
-			Start: start,
+			Title:    as.Main,
+			Time:     as.GetTime(FlagAt),
+			Duration: as.GetDuration(FlagFor),
 		},
 	}
-
-	if as.IsSet(FlagFor) {
-		e.Duration = as.GetDuration(FlagFor)
-	}
-	if as.IsSet(FlagRecStart) {
-		e.Recurrer = &item.Recur{
-			Start:  as.GetTime(FlagRecStart),
-			Period: as.GetRecurPeriod(FlagRecPeriod),
-		}
+	if rec != nil {
+		e.RecurNext = rec.First()
 	}
 
 	if err := add.eventRepo.Store(e); err != nil {

@@ -7,12 +7,11 @@ import (
 )
 
 const (
-	FlagTitle     = "title"
-	FlagOn        = "on"
-	FlagAt        = "at"
-	FlagFor       = "for"
-	FlagRecStart  = "rec-start"
-	FlagRecPeriod = "rec-period"
+	FlagTitle = "title"
+	FlagOn    = "on"
+	FlagAt    = "at"
+	FlagFor   = "for"
+	FlagRec   = "rec"
 )
 
 type Command interface {

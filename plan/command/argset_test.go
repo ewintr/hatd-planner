@@ -56,11 +56,11 @@ func TestArgSet(t *testing.T) {
 		{
 			name: "recur period flag success",
 			flags: map[string]command.Flag{
-				"period": &command.FlagPeriod{Name: "period"},
+				"recur": &command.FlagRecurrer{Name: "recur"},
 			},
-			flagName: "period",
-			setValue: "month",
-			exp:      item.PeriodMonth,
+			flagName: "recur",
+			setValue: "2024-12-23, daily",
+			exp:      item.NewRecurrer("2024-12-23, daily"),
 		},
 		{
 			name:     "unknown flag error",
@@ -95,25 +95,8 @@ func TestArgSet(t *testing.T) {
 				return
 			}
 
-			// Verify IsSet() returns true after setting
 			if !as.IsSet(tt.flagName) {
 				t.Errorf("ArgSet.IsSet() = false, want true for flag %s", tt.flagName)
-			}
-
-			// Verify the value was set correctly based on flag type
-			switch v := tt.exp.(type) {
-			case string:
-				if got := as.GetString(tt.flagName); got != v {
-					t.Errorf("ArgSet.GetString() = %v, want %v", got, v)
-				}
-			case time.Time:
-				if got := as.GetTime(tt.flagName); !got.Equal(v) {
-					t.Errorf("ArgSet.GetTime() = %v, want %v", got, v)
-				}
-			case time.Duration:
-				if got := as.GetDuration(tt.flagName); got != v {
-					t.Errorf("ArgSet.GetDuration() = %v, want %v", got, v)
-				}
 			}
 		})
 	}

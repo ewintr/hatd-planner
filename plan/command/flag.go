@@ -3,7 +3,7 @@ package command
 import (
 	"errors"
 	"fmt"
-	"slices"
+	"strconv"
 	"time"
 
 	"go-mod.ewintr.nl/planner/item"
@@ -45,35 +45,35 @@ func (fs *FlagString) Get() any {
 
 type FlagDate struct {
 	Name  string
-	Value time.Time
+	Value item.Date
 }
 
-func (ft *FlagDate) Set(val string) error {
-	d, err := time.Parse(DateFormat, val)
-	if err != nil {
+func (fd *FlagDate) Set(val string) error {
+	d := item.NewDateFromString(val)
+	if d.IsZero() {
 		return fmt.Errorf("could not parse date: %v", d)
 	}
-	ft.Value = d
+	fd.Value = d
 
 	return nil
 }
 
-func (ft *FlagDate) IsSet() bool {
-	return !ft.Value.IsZero()
+func (fd *FlagDate) IsSet() bool {
+	return !fd.Value.IsZero()
 }
 
-func (fs *FlagDate) Get() any {
-	return fs.Value
+func (fd *FlagDate) Get() any {
+	return fd.Value
 }
 
 type FlagTime struct {
 	Name  string
-	Value time.Time
+	Value item.Time
 }
 
 func (ft *FlagTime) Set(val string) error {
-	d, err := time.Parse(TimeFormat, val)
-	if err != nil {
+	d := item.NewTimeFromString(val)
+	if d.IsZero() {
 		return fmt.Errorf("could not parse date: %v", d)
 	}
 	ft.Value = d
@@ -111,23 +111,46 @@ func (fs *FlagDuration) Get() any {
 	return fs.Value
 }
 
-type FlagPeriod struct {
+type FlagRecurrer struct {
 	Name  string
-	Value item.RecurPeriod
+	Value item.Recurrer
 }
 
-func (fp *FlagPeriod) Set(val string) error {
-	if !slices.Contains(item.ValidPeriods, item.RecurPeriod(val)) {
-		return fmt.Errorf("not a valid period: %v", val)
+func (fr *FlagRecurrer) Set(val string) error {
+	fr.Value = item.NewRecurrer(val)
+	if fr.Value == nil {
+		return fmt.Errorf("not a valid recurrer: %v", val)
 	}
-	fp.Value = item.RecurPeriod(val)
 	return nil
 }
 
-func (fp *FlagPeriod) IsSet() bool {
-	return fp.Value != ""
+func (fr *FlagRecurrer) IsSet() bool {
+	return fr.Value != nil
 }
 
-func (fp *FlagPeriod) Get() any {
-	return fp.Value
+func (fr *FlagRecurrer) Get() any {
+	return fr.Value
+}
+
+type FlagInt struct {
+	Name  string
+	Value int
+}
+
+func (fi *FlagInt) Set(val string) error {
+	i, err := strconv.Atoi(val)
+	if err != nil {
+		return fmt.Errorf("not a valid integer: %v", val)
+	}
+
+	fi.Value = i
+	return nil
+}
+
+func (fi *FlagInt) IsSet() bool {
+	return fi.Value != 0
+}
+
+func (fi *FlagInt) Get() any {
+	return fi.Value
 }

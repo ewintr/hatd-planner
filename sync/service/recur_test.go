@@ -12,23 +12,18 @@ import (
 func TestRecur(t *testing.T) {
 	t.Parallel()
 
-	now := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+	now := time.Now()
+	today := item.NewDate(2024, 1, 1)
 	mem := NewMemory()
 	rec := NewRecur(mem, mem, slog.New(slog.NewTextHandler(io.Discard, nil)))
 
-	// Create a recurring item
-	recur := &item.Recur{
-		Start:  now,
-		Period: item.PeriodDay,
-		Count:  1,
-	}
 	testItem := item.Item{
 		ID:        "test-1",
 		Kind:      item.KindEvent,
 		Updated:   now,
 		Deleted:   false,
-		Recurrer:  recur,
-		RecurNext: now,
+		Recurrer:  item.NewRecurrer("2024-01-01, daily"),
+		RecurNext: today,
 		Body:      `{"title":"Test Event","start":"2024-01-01T10:00:00Z","duration":"30m"}`,
 	}
 
@@ -53,14 +48,14 @@ func TestRecur(t *testing.T) {
 	}
 
 	// Check that RecurNext was updated
-	recurItems, err := mem.RecursBefore(now.Add(48 * time.Hour))
+	recurItems, err := mem.ShouldRecur(today.Add(1))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(recurItems) != 1 {
 		t.Errorf("expected 1 recur item, got %d", len(recurItems))
 	}
-	if !recurItems[0].RecurNext.After(now) {
+	if !recurItems[0].RecurNext.After(today) {
 		t.Errorf("RecurNext was not updated, still %v", recurItems[0].RecurNext)
 	}
 }

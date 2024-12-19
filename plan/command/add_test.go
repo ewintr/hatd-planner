@@ -4,7 +4,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
 	"go-mod.ewintr.nl/planner/item"
 	"go-mod.ewintr.nl/planner/plan/command"
 	"go-mod.ewintr.nl/planner/plan/storage/memory"
@@ -13,13 +12,11 @@ import (
 func TestAdd(t *testing.T) {
 	t.Parallel()
 
-	aDateStr := "2024-11-02"
-	aDate := time.Date(2024, 11, 2, 0, 0, 0, 0, time.UTC)
-	aTimeStr := "12:00"
+	aDate := item.NewDate(2024, 11, 2)
+	aTime := item.NewTime(12, 0)
 	aDay := time.Duration(24) * time.Hour
 	anHourStr := "1h"
 	anHour := time.Hour
-	aDateAndTime := time.Date(2024, 11, 2, 12, 0, 0, 0, time.UTC)
 
 	for _, tc := range []struct {
 		name     string
@@ -36,7 +33,7 @@ func TestAdd(t *testing.T) {
 			name: "title missing",
 			main: []string{"add"},
 			flags: map[string]string{
-				command.FlagOn: aDateStr,
+				command.FlagOn: aDate.String(),
 			},
 			expErr: true,
 		},
@@ -49,30 +46,14 @@ func TestAdd(t *testing.T) {
 			name: "only date",
 			main: []string{"add", "title"},
 			flags: map[string]string{
-				command.FlagOn: aDateStr,
+				command.FlagOn: aDate.String(),
 			},
 			expEvent: item.Event{
-				ID: "title",
+				ID:   "title",
+				Date: aDate,
 				EventBody: item.EventBody{
 					Title:    "title",
-					Start:    aDate,
 					Duration: aDay,
-				},
-			},
-		},
-		{
-			name: "date and time",
-			main: []string{"add", "title"},
-			flags: map[string]string{
-				command.FlagOn: aDateStr,
-				command.FlagAt: aTimeStr,
-			},
-			expEvent: item.Event{
-				ID: "title",
-				EventBody: item.EventBody{
-					Title:    "title",
-					Start:    aDateAndTime,
-					Duration: anHour,
 				},
 			},
 		},
@@ -80,15 +61,16 @@ func TestAdd(t *testing.T) {
 			name: "date, time and duration",
 			main: []string{"add", "title"},
 			flags: map[string]string{
-				command.FlagOn:  aDateStr,
-				command.FlagAt:  aTimeStr,
+				command.FlagOn:  aDate.String(),
+				command.FlagAt:  aTime.String(),
 				command.FlagFor: anHourStr,
 			},
 			expEvent: item.Event{
-				ID: "title",
+				ID:   "title",
+				Date: aDate,
 				EventBody: item.EventBody{
 					Title:    "title",
-					Start:    aDateAndTime,
+					Time:     aTime,
 					Duration: anHour,
 				},
 			},
@@ -97,50 +79,10 @@ func TestAdd(t *testing.T) {
 			name: "date and duration",
 			main: []string{"add", "title"},
 			flags: map[string]string{
-				command.FlagOn:  aDateStr,
+				command.FlagOn:  aDate.String(),
 				command.FlagFor: anHourStr,
 			},
 			expErr: true,
-		},
-		{
-			name: "rec-start without rec-period",
-			main: []string{"add", "title"},
-			flags: map[string]string{
-				command.FlagOn:       aDateStr,
-				command.FlagRecStart: "2024-12-08",
-			},
-			expErr: true,
-		},
-		{
-			name: "rec-period without rec-start",
-			main: []string{"add", "title"},
-			flags: map[string]string{
-				command.FlagOn:        aDateStr,
-				command.FlagRecPeriod: "day",
-			},
-			expErr: true,
-		},
-		{
-			name: "rec-start with rec-period",
-			main: []string{"add", "title"},
-			flags: map[string]string{
-				command.FlagOn:        aDateStr,
-				command.FlagRecStart:  "2024-12-08",
-				command.FlagRecPeriod: "day",
-			},
-			expEvent: item.Event{
-				ID: "title",
-				Recurrer: &item.Recur{
-					Start:  time.Date(2024, 12, 8, 0, 0, 0, 0, time.UTC),
-					Period: item.PeriodDay,
-				},
-				RecurNext: time.Time{},
-				EventBody: item.EventBody{
-					Title:    "title",
-					Start:    aDate,
-					Duration: aDay,
-				},
-			},
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -179,7 +121,7 @@ func TestAdd(t *testing.T) {
 				t.Errorf("exp string not te be empty")
 			}
 			tc.expEvent.ID = actEvents[0].ID
-			if diff := cmp.Diff(tc.expEvent, actEvents[0]); diff != "" {
+			if diff := item.EventDiff(tc.expEvent, actEvents[0]); diff != "" {
 				t.Errorf("(exp -, got +)\n%s", diff)
 			}
 

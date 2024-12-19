@@ -12,12 +12,16 @@ import (
 )
 
 func main() {
-	confPath, err := os.UserConfigDir()
-	if err != nil {
-		fmt.Printf("could not get config path: %s\n", err)
-		os.Exit(1)
+	confPath := os.Getenv("PLAN_CONFIG_PATH")
+	if confPath == "" {
+		userConfigDir, err := os.UserConfigDir()
+		if err != nil {
+			fmt.Printf("could not get config path: %s\n", err)
+			os.Exit(1)
+		}
+		confPath = filepath.Join(userConfigDir, "planner", "plan", "config.yaml")
 	}
-	conf, err := LoadConfig(filepath.Join(confPath, "planner", "plan", "config.yaml"))
+	conf, err := LoadConfig(confPath)
 	if err != nil {
 		fmt.Printf("could not open config file: %s\n", err)
 		os.Exit(1)

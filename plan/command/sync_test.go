@@ -137,10 +137,10 @@ func TestSyncReceive(t *testing.T) {
 }`,
 			}},
 			expEvent: []item.Event{{
-				ID: "a",
+				ID:   "a",
+				Date: item.NewDate(2024, 10, 23),
 				EventBody: item.EventBody{
 					Title:    "title",
-					Start:    time.Date(2024, 10, 23, 8, 0, 0, 0, time.UTC),
 					Duration: oneHour,
 				},
 			}},
@@ -151,10 +151,10 @@ func TestSyncReceive(t *testing.T) {
 		{
 			name: "update existing",
 			present: []item.Event{{
-				ID: "a",
+				ID:   "a",
+				Date: item.NewDate(2024, 10, 23),
 				EventBody: item.EventBody{
 					Title:    "title",
-					Start:    time.Date(2024, 10, 23, 8, 0, 0, 0, time.UTC),
 					Duration: oneHour,
 				},
 			}},
@@ -168,10 +168,10 @@ func TestSyncReceive(t *testing.T) {
 }`,
 			}},
 			expEvent: []item.Event{{
-				ID: "a",
+				ID:   "a",
+				Date: item.NewDate(2024, 10, 23),
 				EventBody: item.EventBody{
 					Title:    "new title",
-					Start:    time.Date(2024, 10, 23, 8, 0, 0, 0, time.UTC),
 					Duration: oneHour,
 				},
 			}},
@@ -210,7 +210,7 @@ func TestSyncReceive(t *testing.T) {
 			if err != nil {
 				t.Errorf("exp nil, got %v", err)
 			}
-			if diff := cmp.Diff(tc.expEvent, actEvents); diff != "" {
+			if diff := item.EventDiffs(tc.expEvent, actEvents); diff != "" {
 				t.Errorf("(exp +, got -)\n%s", diff)
 			}
 			actLocalIDs, err := localIDRepo.FindAll()

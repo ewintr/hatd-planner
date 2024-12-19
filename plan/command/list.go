@@ -2,7 +2,6 @@ package command
 
 import (
 	"fmt"
-	"time"
 
 	"go-mod.ewintr.nl/planner/plan/storage"
 )
@@ -41,7 +40,7 @@ func (list *List) do() error {
 		if !ok {
 			return fmt.Errorf("could not find local id for %s", e.ID)
 		}
-		fmt.Printf("%s\t%d\t%s\t%s\t%s\n", e.ID, lid, e.Title, e.Start.Format(time.DateTime), e.Duration.String())
+		fmt.Printf("%s\t%d\t%s\t%s\t%s\n", e.ID, lid, e.Title, e.Date.String(), e.Duration.String())
 	}
 
 	return nil

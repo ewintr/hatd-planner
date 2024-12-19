@@ -113,19 +113,14 @@ func TestMemoryRecur(t *testing.T) {
 	mem := NewMemory()
 	now := time.Now()
 	earlier := now.Add(-5 * time.Minute)
-	today := time.Date(2024, 12, 1, 0, 0, 0, 0, time.UTC)
-	yesterday := time.Date(2024, 11, 30, 0, 0, 0, 0, time.UTC)
-	tomorrow := time.Date(2024, 12, 2, 0, 0, 0, 0, time.UTC)
+	today := item.NewDate(2024, 12, 1)
+	yesterday := item.NewDate(2024, 11, 30)
 
 	t.Log("start")
 	i1 := item.Item{
-		ID:      "a",
-		Updated: earlier,
-		Recurrer: &item.Recur{
-			Start:  yesterday,
-			Period: item.PeriodDay,
-			Count:  1,
-		},
+		ID:        "a",
+		Updated:   earlier,
+		Recurrer:  item.NewRecurrer("2024-11-30, daily"),
 		RecurNext: yesterday,
 	}
 	i2 := item.Item{
@@ -140,7 +135,7 @@ func TestMemoryRecur(t *testing.T) {
 	}
 
 	t.Log("get recurrers")
-	rs, err := mem.RecursBefore(today)
+	rs, err := mem.ShouldRecur(today)
 	if err != nil {
 		t.Errorf("exp nil, gt %v", err)
 	}
@@ -148,20 +143,4 @@ func TestMemoryRecur(t *testing.T) {
 		t.Errorf("(exp +, got -)\n%s", diff)
 	}
 
-	t.Log("set next")
-	if err := mem.RecursNext(i1.ID, tomorrow, time.Now()); err != nil {
-		t.Errorf("exp nil, got %v", err)
-	}
-
-	t.Log("check result")
-	us, err := mem.Updated([]item.Kind{}, now)
-	if err != nil {
-		t.Errorf("exp nil, got %v", err)
-	}
-	if len(us) != 1 {
-		t.Errorf("exp 1, got %v", len(us))
-	}
-	if us[0].ID != i1.ID {
-		t.Errorf("exp %v, got %v", i1.ID, us[0].ID)
-	}
 }

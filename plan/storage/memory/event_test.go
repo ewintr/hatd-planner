@@ -3,7 +3,6 @@ package memory
 import (
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
 	"go-mod.ewintr.nl/planner/item"
 )
 
@@ -50,7 +49,7 @@ func TestEvent(t *testing.T) {
 	if actErr != nil {
 		t.Errorf("exp nil, got %v", actErr)
 	}
-	if diff := cmp.Diff([]item.Event{e1, e2}, actEvents); diff != "" {
+	if diff := item.EventDiffs([]item.Event{e1, e2}, actEvents); diff != "" {
 		t.Errorf("(exp -, got +)\n%s", diff)
 	}
 }

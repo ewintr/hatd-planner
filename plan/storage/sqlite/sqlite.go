@@ -25,6 +25,23 @@ var migrations = []string{
     deleted BOOLEAN NOT NULL,
     body TEXT NOT NULL
 )`,
+	`ALTER TABLE events ADD COLUMN recur_period TEXT`,
+	`ALTER TABLE events ADD COLUMN recur_count INTEGER`,
+	`ALTER TABLE events ADD COLUMN recur_start TIMESTAMP`,
+	`ALTER TABLE events ADD COLUMN recur_next TIMESTAMP`,
+	`ALTER TABLE events DROP COLUMN recur_period`,
+	`ALTER TABLE events DROP COLUMN recur_count`,
+	`ALTER TABLE events DROP COLUMN recur_start`,
+	`ALTER TABLE events DROP COLUMN recur_next`,
+	`ALTER TABLE events ADD COLUMN recur TEXT`,
+	`ALTER TABLE items ADD COLUMN recurrer TEXT`,
+	`ALTER TABLE events DROP COLUMN recur`,
+	`ALTER TABLE events ADD COLUMN recurrer TEXT NOT NULL DEFAULT ''`,
+	`ALTER TABLE events ADD COLUMN recur_next TEXT NOT NULL DEFAULT ''`,
+	`ALTER TABLE events DROP COLUMN start`,
+	`ALTER TABLE events ADD COLUMN date TEXT NOT NULL DEFAULT ''`,
+	`ALTER TABLE events ADD COLUMN time TEXT NOT NULL DEFAULT ''`,
+	`ALTER TABLE items ADD COLUMN recur_next TEXT NOT NULL DEFAULT ''`,
 }
 
 var (

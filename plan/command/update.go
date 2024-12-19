@@ -4,9 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
 
-	"go-mod.ewintr.nl/planner/item"
 	"go-mod.ewintr.nl/planner/plan/storage"
 )
 
@@ -25,12 +23,11 @@ func NewUpdate(localIDRepo storage.LocalID, eventRepo storage.Event, syncRepo st
 		syncRepo:    syncRepo,
 		argSet: &ArgSet{
 			Flags: map[string]Flag{
-				FlagTitle:     &FlagString{},
-				FlagOn:        &FlagDate{},
-				FlagAt:        &FlagTime{},
-				FlagFor:       &FlagDuration{},
-				FlagRecStart:  &FlagDate{},
-				FlagRecPeriod: &FlagPeriod{},
+				FlagTitle: &FlagString{},
+				FlagOn:    &FlagDate{},
+				FlagAt:    &FlagTime{},
+				FlagFor:   &FlagDuration{},
+				FlagRec:   &FlagRecurrer{},
 			},
 		},
 	}
@@ -87,35 +84,17 @@ func (update *Update) do() error {
 	if as.Main != "" {
 		e.Title = as.Main
 	}
-	if as.IsSet(FlagOn) || as.IsSet(FlagAt) {
-		on := time.Date(e.Start.Year(), e.Start.Month(), e.Start.Day(), 0, 0, 0, 0, time.UTC)
-		atH := time.Duration(e.Start.Hour()) * time.Hour
-		atM := time.Duration(e.Start.Minute()) * time.Minute
-
-		if as.IsSet(FlagOn) {
-			on = as.GetTime(FlagOn)
-		}
-		if as.IsSet(FlagAt) {
-			at := as.GetTime(FlagAt)
-			atH = time.Duration(at.Hour()) * time.Hour
-			atM = time.Duration(at.Minute()) * time.Minute
-		}
-		e.Start = on.Add(atH).Add(atM)
+	if as.IsSet(FlagOn) {
+		e.Date = as.GetDate(FlagOn)
 	}
-
+	if as.IsSet(FlagAt) {
+		e.Time = as.GetTime(FlagAt)
+	}
 	if as.IsSet(FlagFor) {
 		e.Duration = as.GetDuration(FlagFor)
 	}
-	if as.IsSet(FlagRecStart) || as.IsSet(FlagRecPeriod) {
-		if e.Recurrer == nil {
-			e.Recurrer = &item.Recur{}
-		}
-		if as.IsSet(FlagRecStart) {
-			e.Recurrer.Start = as.GetTime(FlagRecStart)
-		}
-		if as.IsSet(FlagRecPeriod) {
-			e.Recurrer.Period = as.GetRecurPeriod(FlagRecPeriod)
-		}
+	if as.IsSet(FlagRec) {
+		e.Recurrer = as.GetRecurrer(FlagRec)
 	}
 
 	if !e.Valid() {
