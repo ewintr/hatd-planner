@@ -100,7 +100,7 @@ func (s *Server) SyncGet(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fmt.Fprint(w, string(body))
-	s.logger.Info("served get sync")
+	s.logger.Info("served sync get")
 }
 
 func (s *Server) SyncPost(w http.ResponseWriter, r *http.Request) {
@@ -155,7 +155,7 @@ func (s *Server) SyncPost(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusNoContent)
 
-	s.logger.Info("served get sync")
+	s.logger.Info("served sync post")
 }
 
 // ShiftPath splits off the first component of p, which will be cleaned of
