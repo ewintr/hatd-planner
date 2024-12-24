@@ -11,16 +11,16 @@ import (
 func TestList(t *testing.T) {
 	t.Parallel()
 
-	eventRepo := memory.NewEvent()
+	taskRepo := memory.NewTask()
 	localRepo := memory.NewLocalID()
-	e := item.Event{
+	e := item.Task{
 		ID:   "id",
 		Date: item.NewDate(2024, 10, 7),
-		EventBody: item.EventBody{
+		TaskBody: item.TaskBody{
 			Title: "name",
 		},
 	}
-	if err := eventRepo.Store(e); err != nil {
+	if err := taskRepo.Store(e); err != nil {
 		t.Errorf("exp nil, got %v", err)
 	}
 	if err := localRepo.Store(e.ID, 1); err != nil {
@@ -47,7 +47,7 @@ func TestList(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			cmd := command.NewList(localRepo, eventRepo)
+			cmd := command.NewList(localRepo, taskRepo)
 			actErr := cmd.Execute(tc.main, nil) != nil
 			if tc.expErr != actErr {
 				t.Errorf("exp %v, got %v", tc.expErr, actErr)

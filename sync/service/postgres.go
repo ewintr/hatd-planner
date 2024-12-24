@@ -27,6 +27,7 @@ var migrations = []string{
 	    ALTER COLUMN recur_next SET NOT NULL,
 	    ALTER COLUMN recur_next SET DEFAULT ''`,
 	`ALTER TABLE items ADD COLUMN date TEXT NOT NULL DEFAULT ''`,
+	`UPDATE items SET kind='task'`,
 }
 
 var (

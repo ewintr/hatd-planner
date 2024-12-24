@@ -27,7 +27,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	localIDRepo, eventRepo, syncRepo, err := sqlite.NewSqlites(conf.DBPath)
+	localIDRepo, taskRepo, syncRepo, err := sqlite.NewSqlites(conf.DBPath)
 	if err != nil {
 		fmt.Printf("could not open db file: %s\n", err)
 		os.Exit(1)
@@ -37,11 +37,11 @@ func main() {
 
 	cli := command.CLI{
 		Commands: []command.Command{
-			command.NewAdd(localIDRepo, eventRepo, syncRepo),
-			command.NewList(localIDRepo, eventRepo),
-			command.NewUpdate(localIDRepo, eventRepo, syncRepo),
-			command.NewDelete(localIDRepo, eventRepo, syncRepo),
-			command.NewSync(syncClient, syncRepo, localIDRepo, eventRepo),
+			command.NewAdd(localIDRepo, taskRepo, syncRepo),
+			command.NewList(localIDRepo, taskRepo),
+			command.NewUpdate(localIDRepo, taskRepo, syncRepo),
+			command.NewDelete(localIDRepo, taskRepo, syncRepo),
+			command.NewSync(syncClient, syncRepo, localIDRepo, taskRepo),
 		},
 	}
 

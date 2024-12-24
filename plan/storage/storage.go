@@ -27,10 +27,10 @@ type Sync interface {
 	LastUpdate() (time.Time, error)
 }
 
-type Event interface {
-	Store(event item.Event) error
-	Find(id string) (item.Event, error)
-	FindAll() ([]item.Event, error)
+type Task interface {
+	Store(task item.Task) error
+	Find(id string) (item.Task, error)
+	FindAll() ([]item.Task, error)
 	Delete(id string) error
 }
 

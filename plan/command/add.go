@@ -11,15 +11,15 @@ import (
 
 type Add struct {
 	localIDRepo storage.LocalID
-	eventRepo   storage.Event
+	taskRepo    storage.Task
 	syncRepo    storage.Sync
 	argSet      *ArgSet
 }
 
-func NewAdd(localRepo storage.LocalID, eventRepo storage.Event, syncRepo storage.Sync) Command {
+func NewAdd(localRepo storage.LocalID, taskRepo storage.Task, syncRepo storage.Sync) Command {
 	return &Add{
 		localIDRepo: localRepo,
-		eventRepo:   eventRepo,
+		taskRepo:    taskRepo,
 		syncRepo:    syncRepo,
 		argSet: &ArgSet{
 			Flags: map[string]Flag{
@@ -75,21 +75,21 @@ func (add *Add) Execute(main []string, flags map[string]string) error {
 func (add *Add) do() error {
 	as := add.argSet
 	rec := as.GetRecurrer(FlagRec)
-	e := item.Event{
+	tsk := item.Task{
 		ID:       uuid.New().String(),
 		Date:     as.GetDate(FlagOn),
 		Recurrer: rec,
-		EventBody: item.EventBody{
+		TaskBody: item.TaskBody{
 			Title:    as.Main,
 			Time:     as.GetTime(FlagAt),
 			Duration: as.GetDuration(FlagFor),
 		},
 	}
 	if rec != nil {
-		e.RecurNext = rec.First()
+		tsk.RecurNext = rec.First()
 	}
 
-	if err := add.eventRepo.Store(e); err != nil {
+	if err := add.taskRepo.Store(tsk); err != nil {
 		return fmt.Errorf("could not store event: %v", err)
 	}
 
@@ -97,11 +97,11 @@ func (add *Add) do() error {
 	if err != nil {
 		return fmt.Errorf("could not create next local id: %v", err)
 	}
-	if err := add.localIDRepo.Store(e.ID, localID); err != nil {
+	if err := add.localIDRepo.Store(tsk.ID, localID); err != nil {
 		return fmt.Errorf("could not store local id: %v", err)
 	}
 
-	it, err := e.Item()
+	it, err := tsk.Item()
 	if err != nil {
 		return fmt.Errorf("could not convert event to sync item: %v", err)
 	}

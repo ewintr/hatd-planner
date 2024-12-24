@@ -19,11 +19,11 @@ func TestAdd(t *testing.T) {
 	anHour := time.Hour
 
 	for _, tc := range []struct {
-		name     string
-		main     []string
-		flags    map[string]string
-		expErr   bool
-		expEvent item.Event
+		name    string
+		main    []string
+		flags   map[string]string
+		expErr  bool
+		expTask item.Task
 	}{
 		{
 			name:   "empty",
@@ -48,10 +48,10 @@ func TestAdd(t *testing.T) {
 			flags: map[string]string{
 				command.FlagOn: aDate.String(),
 			},
-			expEvent: item.Event{
+			expTask: item.Task{
 				ID:   "title",
 				Date: aDate,
-				EventBody: item.EventBody{
+				TaskBody: item.TaskBody{
 					Title:    "title",
 					Duration: aDay,
 				},
@@ -65,10 +65,10 @@ func TestAdd(t *testing.T) {
 				command.FlagAt:  aTime.String(),
 				command.FlagFor: anHourStr,
 			},
-			expEvent: item.Event{
+			expTask: item.Task{
 				ID:   "title",
 				Date: aDate,
-				EventBody: item.EventBody{
+				TaskBody: item.TaskBody{
 					Title:    "title",
 					Time:     aTime,
 					Duration: anHour,
@@ -86,10 +86,10 @@ func TestAdd(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			eventRepo := memory.NewEvent()
+			taskRepo := memory.NewTask()
 			localRepo := memory.NewLocalID()
 			syncRepo := memory.NewSync()
-			cmd := command.NewAdd(localRepo, eventRepo, syncRepo)
+			cmd := command.NewAdd(localRepo, taskRepo, syncRepo)
 			actParseErr := cmd.Execute(tc.main, tc.flags) != nil
 			if tc.expErr != actParseErr {
 				t.Errorf("exp %v, got %v", tc.expErr, actParseErr)
@@ -98,12 +98,12 @@ func TestAdd(t *testing.T) {
 				return
 			}
 
-			actEvents, err := eventRepo.FindAll()
+			actTasks, err := taskRepo.FindAll()
 			if err != nil {
 				t.Errorf("exp nil, got %v", err)
 			}
-			if len(actEvents) != 1 {
-				t.Errorf("exp 1, got %d", len(actEvents))
+			if len(actTasks) != 1 {
+				t.Errorf("exp 1, got %d", len(actTasks))
 			}
 
 			actLocalIDs, err := localRepo.FindAll()
@@ -113,15 +113,15 @@ func TestAdd(t *testing.T) {
 			if len(actLocalIDs) != 1 {
 				t.Errorf("exp 1, got %v", len(actLocalIDs))
 			}
-			if _, ok := actLocalIDs[actEvents[0].ID]; !ok {
+			if _, ok := actLocalIDs[actTasks[0].ID]; !ok {
 				t.Errorf("exp true, got %v", ok)
 			}
 
-			if actEvents[0].ID == "" {
+			if actTasks[0].ID == "" {
 				t.Errorf("exp string not te be empty")
 			}
-			tc.expEvent.ID = actEvents[0].ID
-			if diff := item.EventDiff(tc.expEvent, actEvents[0]); diff != "" {
+			tc.expTask.ID = actTasks[0].ID
+			if diff := item.TaskDiff(tc.expTask, actTasks[0]); diff != "" {
 				t.Errorf("(exp -, got +)\n%s", diff)
 			}
 

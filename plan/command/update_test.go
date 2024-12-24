@@ -13,7 +13,7 @@ import (
 func TestUpdateExecute(t *testing.T) {
 	t.Parallel()
 
-	eid := "c"
+	tskID := "c"
 	lid := 3
 	oneHour, err := time.ParseDuration("1h")
 	if err != nil {
@@ -28,12 +28,12 @@ func TestUpdateExecute(t *testing.T) {
 	}
 
 	for _, tc := range []struct {
-		name     string
-		localID  int
-		main     []string
-		flags    map[string]string
-		expEvent item.Event
-		expErr   bool
+		name    string
+		localID int
+		main    []string
+		flags   map[string]string
+		expTask item.Task
+		expErr  bool
 	}{
 		{
 			name:   "no args",
@@ -48,10 +48,10 @@ func TestUpdateExecute(t *testing.T) {
 			name:    "name",
 			localID: lid,
 			main:    []string{"update", fmt.Sprintf("%d", lid), "updated"},
-			expEvent: item.Event{
-				ID:   eid,
+			expTask: item.Task{
+				ID:   tskID,
 				Date: item.NewDate(2024, 10, 6),
-				EventBody: item.EventBody{
+				TaskBody: item.TaskBody{
 					Title:    "updated",
 					Time:     aTime,
 					Duration: oneHour,
@@ -74,10 +74,10 @@ func TestUpdateExecute(t *testing.T) {
 			flags: map[string]string{
 				"on": "2024-10-02",
 			},
-			expEvent: item.Event{
-				ID:   eid,
+			expTask: item.Task{
+				ID:   tskID,
 				Date: item.NewDate(2024, 10, 2),
-				EventBody: item.EventBody{
+				TaskBody: item.TaskBody{
 					Title:    title,
 					Time:     aTime,
 					Duration: oneHour,
@@ -100,10 +100,10 @@ func TestUpdateExecute(t *testing.T) {
 			flags: map[string]string{
 				"at": "11:00",
 			},
-			expEvent: item.Event{
-				ID:   eid,
+			expTask: item.Task{
+				ID:   tskID,
 				Date: item.NewDate(2024, 10, 6),
-				EventBody: item.EventBody{
+				TaskBody: item.TaskBody{
 					Title:    title,
 					Time:     item.NewTime(11, 0),
 					Duration: oneHour,
@@ -118,10 +118,10 @@ func TestUpdateExecute(t *testing.T) {
 				"on": "2024-10-02",
 				"at": "11:00",
 			},
-			expEvent: item.Event{
-				ID:   eid,
+			expTask: item.Task{
+				ID:   tskID,
 				Date: item.NewDate(2024, 10, 2),
-				EventBody: item.EventBody{
+				TaskBody: item.TaskBody{
 					Title:    title,
 					Time:     item.NewTime(11, 0),
 					Duration: oneHour,
@@ -144,10 +144,10 @@ func TestUpdateExecute(t *testing.T) {
 			flags: map[string]string{
 				"for": "2h",
 			},
-			expEvent: item.Event{
-				ID:   eid,
+			expTask: item.Task{
+				ID:   tskID,
 				Date: item.NewDate(2024, 10, 6),
-				EventBody: item.EventBody{
+				TaskBody: item.TaskBody{
 					Title:    title,
 					Time:     aTime,
 					Duration: twoHour,
@@ -168,11 +168,11 @@ func TestUpdateExecute(t *testing.T) {
 			flags: map[string]string{
 				"rec": "2024-12-08, daily",
 			},
-			expEvent: item.Event{
-				ID:       eid,
+			expTask: item.Task{
+				ID:       tskID,
 				Date:     aDate,
 				Recurrer: item.NewRecurrer("2024-12-08, daily"),
-				EventBody: item.EventBody{
+				TaskBody: item.TaskBody{
 					Title:    title,
 					Time:     aTime,
 					Duration: oneHour,
@@ -181,13 +181,13 @@ func TestUpdateExecute(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			eventRepo := memory.NewEvent()
+			taskRepo := memory.NewTask()
 			localIDRepo := memory.NewLocalID()
 			syncRepo := memory.NewSync()
-			if err := eventRepo.Store(item.Event{
-				ID:   eid,
+			if err := taskRepo.Store(item.Task{
+				ID:   tskID,
 				Date: aDate,
-				EventBody: item.EventBody{
+				TaskBody: item.TaskBody{
 					Title:    title,
 					Time:     aTime,
 					Duration: oneHour,
@@ -195,11 +195,11 @@ func TestUpdateExecute(t *testing.T) {
 			}); err != nil {
 				t.Errorf("exp nil, got %v", err)
 			}
-			if err := localIDRepo.Store(eid, lid); err != nil {
+			if err := localIDRepo.Store(tskID, lid); err != nil {
 				t.Errorf("exp nil, ,got %v", err)
 			}
 
-			cmd := command.NewUpdate(localIDRepo, eventRepo, syncRepo)
+			cmd := command.NewUpdate(localIDRepo, taskRepo, syncRepo)
 			actParseErr := cmd.Execute(tc.main, tc.flags) != nil
 			if tc.expErr != actParseErr {
 				t.Errorf("exp %v, got %v", tc.expErr, actParseErr)
@@ -208,11 +208,11 @@ func TestUpdateExecute(t *testing.T) {
 				return
 			}
 
-			actEvent, err := eventRepo.Find(eid)
+			actTask, err := taskRepo.Find(tskID)
 			if err != nil {
 				t.Errorf("exp nil, got %v", err)
 			}
-			if diff := item.EventDiff(tc.expEvent, actEvent); diff != "" {
+			if diff := item.TaskDiff(tc.expTask, actTask); diff != "" {
 				t.Errorf("(exp -, got +)\n%s", diff)
 			}
 			updated, err := syncRepo.FindAll()

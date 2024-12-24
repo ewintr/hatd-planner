@@ -9,15 +9,15 @@ import (
 
 type Delete struct {
 	localIDRepo storage.LocalID
-	eventRepo   storage.Event
+	taskRepo    storage.Task
 	syncRepo    storage.Sync
 	localID     int
 }
 
-func NewDelete(localIDRepo storage.LocalID, eventRepo storage.Event, syncRepo storage.Sync) Command {
+func NewDelete(localIDRepo storage.LocalID, taskRepo storage.Task, syncRepo storage.Sync) Command {
 	return &Delete{
 		localIDRepo: localIDRepo,
-		eventRepo:   eventRepo,
+		taskRepo:    taskRepo,
 		syncRepo:    syncRepo,
 	}
 }
@@ -41,23 +41,23 @@ func (del *Delete) do() error {
 	if err != nil {
 		return fmt.Errorf("could not get local ids: %v", err)
 	}
-	for eid, lid := range idMap {
+	for tskID, lid := range idMap {
 		if del.localID == lid {
-			id = eid
+			id = tskID
 		}
 	}
 	if id == "" {
 		return fmt.Errorf("could not find local id")
 	}
 
-	e, err := del.eventRepo.Find(id)
+	tsk, err := del.taskRepo.Find(id)
 	if err != nil {
-		return fmt.Errorf("could not get event: %v", err)
+		return fmt.Errorf("could not get task: %v", err)
 	}
 
-	it, err := e.Item()
+	it, err := tsk.Item()
 	if err != nil {
-		return fmt.Errorf("could not convert event to sync item: %v", err)
+		return fmt.Errorf("could not convert task to sync item: %v", err)
 	}
 	it.Deleted = true
 	if err := del.syncRepo.Store(it); err != nil {
@@ -68,8 +68,8 @@ func (del *Delete) do() error {
 		return fmt.Errorf("could not delete local id: %v", err)
 	}
 
-	if err := del.eventRepo.Delete(id); err != nil {
-		return fmt.Errorf("could not delete event: %v", err)
+	if err := del.taskRepo.Delete(id); err != nil {
+		return fmt.Errorf("could not delete task: %v", err)
 	}
 
 	return nil

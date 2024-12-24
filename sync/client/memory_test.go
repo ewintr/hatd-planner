@@ -16,9 +16,9 @@ func TestMemory(t *testing.T) {
 
 	now := time.Now()
 	items := []item.Item{
-		{ID: "a", Kind: item.KindTask, Updated: now.Add(-15 * time.Minute)},
-		{ID: "b", Kind: item.KindEvent, Updated: now.Add(-10 * time.Minute)},
-		{ID: "c", Kind: item.KindTask, Updated: now.Add(-5 * time.Minute)},
+		{ID: "a", Kind: item.KindSchedule, Updated: now.Add(-15 * time.Minute)},
+		{ID: "b", Kind: item.KindTask, Updated: now.Add(-10 * time.Minute)},
+		{ID: "c", Kind: item.KindSchedule, Updated: now.Add(-5 * time.Minute)},
 	}
 	if err := mem.Update(items); err != nil {
 		t.Errorf("exp nil, got %v", err)
@@ -37,12 +37,12 @@ func TestMemory(t *testing.T) {
 		},
 		{
 			name:     "kind",
-			ks:       []item.Kind{item.KindEvent},
+			ks:       []item.Kind{item.KindTask},
 			expItems: []item.Item{items[1]},
 		},
 		{
 			name:     "timestamp",
-			ks:       []item.Kind{item.KindTask, item.KindEvent},
+			ks:       []item.Kind{item.KindSchedule, item.KindTask},
 			ts:       now.Add(-10 * time.Minute),
 			expItems: items[1:],
 		},

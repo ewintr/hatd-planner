@@ -10,12 +10,12 @@ import (
 type Kind string
 
 const (
-	KindTask  Kind = "task"
-	KindEvent Kind = "event"
+	KindSchedule Kind = "schedule"
+	KindTask     Kind = "task"
 )
 
 var (
-	KnownKinds = []Kind{KindTask, KindEvent}
+	KnownKinds = []Kind{KindSchedule, KindTask}
 )
 
 type Item struct {

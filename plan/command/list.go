@@ -8,13 +8,13 @@ import (
 
 type List struct {
 	localIDRepo storage.LocalID
-	eventRepo   storage.Event
+	taskRepo    storage.Task
 }
 
-func NewList(localIDRepo storage.LocalID, eventRepo storage.Event) Command {
+func NewList(localIDRepo storage.LocalID, taskRepo storage.Task) Command {
 	return &List{
 		localIDRepo: localIDRepo,
-		eventRepo:   eventRepo,
+		taskRepo:    taskRepo,
 	}
 }
 
@@ -31,7 +31,7 @@ func (list *List) do() error {
 	if err != nil {
 		return fmt.Errorf("could not get local ids: %v", err)
 	}
-	all, err := list.eventRepo.FindAll()
+	all, err := list.taskRepo.FindAll()
 	if err != nil {
 		return err
 	}

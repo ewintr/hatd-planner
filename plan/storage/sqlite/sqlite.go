@@ -42,6 +42,7 @@ var migrations = []string{
 	`ALTER TABLE events ADD COLUMN date TEXT NOT NULL DEFAULT ''`,
 	`ALTER TABLE events ADD COLUMN time TEXT NOT NULL DEFAULT ''`,
 	`ALTER TABLE items ADD COLUMN recur_next TEXT NOT NULL DEFAULT ''`,
+	`ALTER TABLE events RENAME TO tasks`,
 }
 
 var (
@@ -51,7 +52,7 @@ var (
 	ErrSqliteFailure            = errors.New("sqlite returned an error")
 )
 
-func NewSqlites(dbPath string) (*LocalID, *SqliteEvent, *SqliteSync, error) {
+func NewSqlites(dbPath string) (*LocalID, *SqliteTask, *SqliteSync, error) {
 	db, err := sql.Open("sqlite", dbPath)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("%w: %v", ErrInvalidConfiguration, err)
@@ -60,7 +61,7 @@ func NewSqlites(dbPath string) (*LocalID, *SqliteEvent, *SqliteSync, error) {
 	sl := &LocalID{
 		db: db,
 	}
-	se := &SqliteEvent{
+	se := &SqliteTask{
 		db: db,
 	}
 	ss := &SqliteSync{

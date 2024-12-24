@@ -19,12 +19,12 @@ func TestRecur(t *testing.T) {
 
 	testItem := item.Item{
 		ID:        "test-1",
-		Kind:      item.KindEvent,
+		Kind:      item.KindTask,
 		Updated:   now,
 		Deleted:   false,
 		Recurrer:  item.NewRecurrer("2024-01-01, daily"),
 		RecurNext: today,
-		Body:      `{"title":"Test Event","start":"2024-01-01T10:00:00Z","duration":"30m"}`,
+		Body:      `{"title":"Test task","start":"2024-01-01T10:00:00Z","duration":"30m"}`,
 	}
 
 	// Store the item
@@ -38,7 +38,7 @@ func TestRecur(t *testing.T) {
 	}
 
 	// Verify results
-	items, err := mem.Updated([]item.Kind{item.KindEvent}, now)
+	items, err := mem.Updated([]item.Kind{item.KindTask}, now)
 	if err != nil {
 		t.Errorf("failed to get updated items: %v", err)
 	}

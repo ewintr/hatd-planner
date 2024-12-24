@@ -14,15 +14,15 @@ type Sync struct {
 	client      client.Client
 	syncRepo    storage.Sync
 	localIDRepo storage.LocalID
-	eventRepo   storage.Event
+	taskRepo    storage.Task
 }
 
-func NewSync(client client.Client, syncRepo storage.Sync, localIDRepo storage.LocalID, eventRepo storage.Event) Command {
+func NewSync(client client.Client, syncRepo storage.Sync, localIDRepo storage.LocalID, taskRepo storage.Task) Command {
 	return &Sync{
 		client:      client,
 		syncRepo:    syncRepo,
 		localIDRepo: localIDRepo,
-		eventRepo:   eventRepo,
+		taskRepo:    taskRepo,
 	}
 }
 
@@ -52,7 +52,7 @@ func (sync *Sync) do() error {
 	if err != nil {
 		return fmt.Errorf("could not find timestamp of last update: %v", err)
 	}
-	recItems, err := sync.client.Updated([]item.Kind{item.KindEvent}, ts)
+	recItems, err := sync.client.Updated([]item.Kind{item.KindTask}, ts)
 	if err != nil {
 		return fmt.Errorf("could not receive updates: %v", err)
 	}
@@ -63,8 +63,8 @@ func (sync *Sync) do() error {
 			if err := sync.localIDRepo.Delete(ri.ID); err != nil && !errors.Is(err, storage.ErrNotFound) {
 				return fmt.Errorf("could not delete local id: %v", err)
 			}
-			if err := sync.eventRepo.Delete(ri.ID); err != nil && !errors.Is(err, storage.ErrNotFound) {
-				return fmt.Errorf("could not delete event: %v", err)
+			if err := sync.taskRepo.Delete(ri.ID); err != nil && !errors.Is(err, storage.ErrNotFound) {
+				return fmt.Errorf("could not delete task: %v", err)
 			}
 			continue
 		}
@@ -76,16 +76,16 @@ func (sync *Sync) do() error {
 		return fmt.Errorf("could not get local ids: %v", err)
 	}
 	for _, u := range updated {
-		var eBody item.EventBody
-		if err := json.Unmarshal([]byte(u.Body), &eBody); err != nil {
-			return fmt.Errorf("could not unmarshal event body: %v", err)
+		var tskBody item.TaskBody
+		if err := json.Unmarshal([]byte(u.Body), &tskBody); err != nil {
+			return fmt.Errorf("could not unmarshal task body: %v", err)
 		}
-		e := item.Event{
-			ID:        u.ID,
-			EventBody: eBody,
+		tsk := item.Task{
+			ID:       u.ID,
+			TaskBody: tskBody,
 		}
-		if err := sync.eventRepo.Store(e); err != nil {
-			return fmt.Errorf("could not store event: %v", err)
+		if err := sync.taskRepo.Store(tsk); err != nil {
+			return fmt.Errorf("could not store task: %v", err)
 		}
 		lid, ok := lidMap[u.ID]
 		if !ok {

@@ -17,7 +17,7 @@ func TestSyncParse(t *testing.T) {
 	syncClient := client.NewMemory()
 	syncRepo := memory.NewSync()
 	localIDRepo := memory.NewLocalID()
-	eventRepo := memory.NewEvent()
+	taskRepo := memory.NewTask()
 
 	for _, tc := range []struct {
 		name   string
@@ -39,7 +39,7 @@ func TestSyncParse(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			cmd := command.NewSync(syncClient, syncRepo, localIDRepo, eventRepo)
+			cmd := command.NewSync(syncClient, syncRepo, localIDRepo, taskRepo)
 			actErr := cmd.Execute(tc.main, nil) != nil
 			if tc.expErr != actErr {
 				t.Errorf("exp %v, got %v", tc.expErr, actErr)
@@ -54,11 +54,11 @@ func TestSyncSend(t *testing.T) {
 	syncClient := client.NewMemory()
 	syncRepo := memory.NewSync()
 	localIDRepo := memory.NewLocalID()
-	eventRepo := memory.NewEvent()
+	taskRepo := memory.NewTask()
 
 	it := item.Item{
 		ID:   "a",
-		Kind: item.KindEvent,
+		Kind: item.KindTask,
 		Body: `{
   "title":"title",
   "start":"2024-10-18T08:00:00Z",
@@ -77,12 +77,12 @@ func TestSyncSend(t *testing.T) {
 	}{
 		{
 			name:     "single",
-			ks:       []item.Kind{item.KindEvent},
+			ks:       []item.Kind{item.KindTask},
 			expItems: []item.Item{it},
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			cmd := command.NewSync(syncClient, syncRepo, localIDRepo, eventRepo)
+			cmd := command.NewSync(syncClient, syncRepo, localIDRepo, taskRepo)
 			if err := cmd.Execute([]string{"sync"}, nil); err != nil {
 				t.Errorf("exp nil, got %v", err)
 			}
@@ -115,31 +115,31 @@ func TestSyncReceive(t *testing.T) {
 
 	for _, tc := range []struct {
 		name       string
-		present    []item.Event
+		present    []item.Task
 		updated    []item.Item
-		expEvent   []item.Event
+		expTask    []item.Task
 		expLocalID map[string]int
 	}{
 		{
 			name:       "no new",
-			expEvent:   []item.Event{},
+			expTask:    []item.Task{},
 			expLocalID: map[string]int{},
 		},
 		{
 			name: "new",
 			updated: []item.Item{{
 				ID:   "a",
-				Kind: item.KindEvent,
+				Kind: item.KindTask,
 				Body: `{
   "title":"title",
   "start":"2024-10-23T08:00:00Z",
   "duration":"1h" 
 }`,
 			}},
-			expEvent: []item.Event{{
+			expTask: []item.Task{{
 				ID:   "a",
 				Date: item.NewDate(2024, 10, 23),
-				EventBody: item.EventBody{
+				TaskBody: item.TaskBody{
 					Title:    "title",
 					Duration: oneHour,
 				},
@@ -150,27 +150,27 @@ func TestSyncReceive(t *testing.T) {
 		},
 		{
 			name: "update existing",
-			present: []item.Event{{
+			present: []item.Task{{
 				ID:   "a",
 				Date: item.NewDate(2024, 10, 23),
-				EventBody: item.EventBody{
+				TaskBody: item.TaskBody{
 					Title:    "title",
 					Duration: oneHour,
 				},
 			}},
 			updated: []item.Item{{
 				ID:   "a",
-				Kind: item.KindEvent,
+				Kind: item.KindTask,
 				Body: `{
   "title":"new title",
   "start":"2024-10-23T08:00:00Z",
   "duration":"1h" 
 }`,
 			}},
-			expEvent: []item.Event{{
+			expTask: []item.Task{{
 				ID:   "a",
 				Date: item.NewDate(2024, 10, 23),
-				EventBody: item.EventBody{
+				TaskBody: item.TaskBody{
 					Title:    "new title",
 					Duration: oneHour,
 				},
@@ -185,10 +185,10 @@ func TestSyncReceive(t *testing.T) {
 			syncClient := client.NewMemory()
 			syncRepo := memory.NewSync()
 			localIDRepo := memory.NewLocalID()
-			eventRepo := memory.NewEvent()
+			taskRepo := memory.NewTask()
 
 			for i, p := range tc.present {
-				if err := eventRepo.Store(p); err != nil {
+				if err := taskRepo.Store(p); err != nil {
 					t.Errorf("exp nil, got %v", err)
 				}
 				if err := localIDRepo.Store(p.ID, i+1); err != nil {
@@ -200,17 +200,17 @@ func TestSyncReceive(t *testing.T) {
 			}
 
 			// sync
-			cmd := command.NewSync(syncClient, syncRepo, localIDRepo, eventRepo)
+			cmd := command.NewSync(syncClient, syncRepo, localIDRepo, taskRepo)
 			if err := cmd.Execute([]string{"sync"}, nil); err != nil {
 				t.Errorf("exp nil, got %v", err)
 			}
 
 			// check result
-			actEvents, err := eventRepo.FindAll()
+			actTasks, err := taskRepo.FindAll()
 			if err != nil {
 				t.Errorf("exp nil, got %v", err)
 			}
-			if diff := item.EventDiffs(tc.expEvent, actEvents); diff != "" {
+			if diff := item.TaskDiffs(tc.expTask, actTasks); diff != "" {
 				t.Errorf("(exp +, got -)\n%s", diff)
 			}
 			actLocalIDs, err := localIDRepo.FindAll()

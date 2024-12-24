@@ -10,16 +10,16 @@ import (
 
 type Update struct {
 	localIDRepo storage.LocalID
-	eventRepo   storage.Event
+	taskRepo    storage.Task
 	syncRepo    storage.Sync
 	argSet      *ArgSet
 	localID     int
 }
 
-func NewUpdate(localIDRepo storage.LocalID, eventRepo storage.Event, syncRepo storage.Sync) Command {
+func NewUpdate(localIDRepo storage.LocalID, taskRepo storage.Task, syncRepo storage.Sync) Command {
 	return &Update{
 		localIDRepo: localIDRepo,
-		eventRepo:   eventRepo,
+		taskRepo:    taskRepo,
 		syncRepo:    syncRepo,
 		argSet: &ArgSet{
 			Flags: map[string]Flag{
@@ -67,47 +67,47 @@ func (update *Update) do() error {
 	if err != nil {
 		return fmt.Errorf("could not get local ids: %v", err)
 	}
-	for eid, lid := range idMap {
+	for tid, lid := range idMap {
 		if update.localID == lid {
-			id = eid
+			id = tid
 		}
 	}
 	if id == "" {
 		return fmt.Errorf("could not find local id")
 	}
 
-	e, err := update.eventRepo.Find(id)
+	tsk, err := update.taskRepo.Find(id)
 	if err != nil {
-		return fmt.Errorf("could not find event")
+		return fmt.Errorf("could not find task")
 	}
 
 	if as.Main != "" {
-		e.Title = as.Main
+		tsk.Title = as.Main
 	}
 	if as.IsSet(FlagOn) {
-		e.Date = as.GetDate(FlagOn)
+		tsk.Date = as.GetDate(FlagOn)
 	}
 	if as.IsSet(FlagAt) {
-		e.Time = as.GetTime(FlagAt)
+		tsk.Time = as.GetTime(FlagAt)
 	}
 	if as.IsSet(FlagFor) {
-		e.Duration = as.GetDuration(FlagFor)
+		tsk.Duration = as.GetDuration(FlagFor)
 	}
 	if as.IsSet(FlagRec) {
-		e.Recurrer = as.GetRecurrer(FlagRec)
+		tsk.Recurrer = as.GetRecurrer(FlagRec)
 	}
 
-	if !e.Valid() {
-		return fmt.Errorf("event is unvalid")
+	if !tsk.Valid() {
+		return fmt.Errorf("task is unvalid")
 	}
 
-	if err := update.eventRepo.Store(e); err != nil {
-		return fmt.Errorf("could not store event: %v", err)
+	if err := update.taskRepo.Store(tsk); err != nil {
+		return fmt.Errorf("could not store task: %v", err)
 	}
 
-	it, err := e.Item()
+	it, err := tsk.Item()
 	if err != nil {
-		return fmt.Errorf("could not convert event to sync item: %v", err)
+		return fmt.Errorf("could not convert task to sync item: %v", err)
 	}
 	if err := update.syncRepo.Store(it); err != nil {
 		return fmt.Errorf("could not store sync item: %v", err)

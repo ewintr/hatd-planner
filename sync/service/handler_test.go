@@ -59,9 +59,9 @@ func TestSyncGet(t *testing.T) {
 	mem := NewMemory()
 
 	items := []item.Item{
-		{ID: "id-0", Kind: item.KindEvent, Updated: now.Add(-10 * time.Minute)},
-		{ID: "id-1", Kind: item.KindEvent, Updated: now.Add(-5 * time.Minute)},
-		{ID: "id-2", Kind: item.KindTask, Updated: now.Add(time.Minute)},
+		{ID: "id-0", Kind: item.KindTask, Updated: now.Add(-10 * time.Minute)},
+		{ID: "id-1", Kind: item.KindTask, Updated: now.Add(-5 * time.Minute)},
+		{ID: "id-2", Kind: item.KindSchedule, Updated: now.Add(time.Minute)},
 	}
 
 	for _, item := range items {
@@ -93,7 +93,7 @@ func TestSyncGet(t *testing.T) {
 		},
 		{
 			name:      "kind",
-			ks:        []string{string(item.KindTask)},
+			ks:        []string{string(item.KindSchedule)},
 			expStatus: http.StatusOK,
 			expItems:  []item.Item{items[2]},
 		},
@@ -171,20 +171,20 @@ func TestSyncPost(t *testing.T) {
 		{
 			name: "invalid item",
 			reqBody: []byte(`[
-  {"id":"id-1","kind":"event","updated":"2024-09-06T08:00:00Z"},
+  {"id":"id-1","kind":"task","updated":"2024-09-06T08:00:00Z"},
 ]`),
 			expStatus: http.StatusBadRequest,
 		},
 		{
 			name: "normal",
 			reqBody: []byte(`[
-  {"id":"id-1","kind":"event","updated":"2024-09-06T08:00:00Z","deleted":false,"body":"item"},
-  {"id":"id-2","kind":"event","updated":"2024-09-06T08:12:00Z","deleted":false,"body":"item2"}
+  {"id":"id-1","kind":"task","updated":"2024-09-06T08:00:00Z","deleted":false,"body":"item"},
+  {"id":"id-2","kind":"task","updated":"2024-09-06T08:12:00Z","deleted":false,"body":"item2"}
 ]`),
 			expStatus: http.StatusNoContent,
 			expItems: []item.Item{
-				{ID: "id-1", Kind: item.KindEvent, Updated: time.Date(2024, 9, 6, 8, 0, 0, 0, time.UTC)},
-				{ID: "id-2", Kind: item.KindEvent, Updated: time.Date(2024, 9, 6, 12, 0, 0, 0, time.UTC)},
+				{ID: "id-1", Kind: item.KindTask, Updated: time.Date(2024, 9, 6, 8, 0, 0, 0, time.UTC)},
+				{ID: "id-2", Kind: item.KindTask, Updated: time.Date(2024, 9, 6, 12, 0, 0, 0, time.UTC)},
 			},
 		},
 	} {

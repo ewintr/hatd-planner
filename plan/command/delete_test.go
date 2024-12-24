@@ -13,10 +13,10 @@ import (
 func TestDelete(t *testing.T) {
 	t.Parallel()
 
-	e := item.Event{
+	e := item.Task{
 		ID:   "id",
 		Date: item.NewDate(2024, 10, 7),
-		EventBody: item.EventBody{
+		TaskBody: item.TaskBody{
 			Title: "name",
 		},
 	}
@@ -43,7 +43,7 @@ func TestDelete(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			eventRepo := memory.NewEvent()
+			eventRepo := memory.NewTask()
 			syncRepo := memory.NewSync()
 			if err := eventRepo.Store(e); err != nil {
 				t.Errorf("exp nil, got %v", err)
