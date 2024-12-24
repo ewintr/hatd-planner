@@ -12,39 +12,6 @@ const (
 	timestampFormat = "2006-01-02 15:04:05"
 )
 
-var migrations = []string{
-	`CREATE TABLE events ("id" TEXT UNIQUE, "title" TEXT, "start" TIMESTAMP, "duration" TEXT)`,
-	`PRAGMA journal_mode=WAL`,
-	`PRAGMA synchronous=NORMAL`,
-	`PRAGMA cache_size=2000`,
-	`CREATE TABLE localids ("id" TEXT UNIQUE, "local_id" INTEGER)`,
-	`CREATE TABLE items (
-    id TEXT PRIMARY KEY NOT NULL,
-    kind TEXT NOT NULL,
-    updated TIMESTAMP NOT NULL,
-    deleted BOOLEAN NOT NULL,
-    body TEXT NOT NULL
-)`,
-	`ALTER TABLE events ADD COLUMN recur_period TEXT`,
-	`ALTER TABLE events ADD COLUMN recur_count INTEGER`,
-	`ALTER TABLE events ADD COLUMN recur_start TIMESTAMP`,
-	`ALTER TABLE events ADD COLUMN recur_next TIMESTAMP`,
-	`ALTER TABLE events DROP COLUMN recur_period`,
-	`ALTER TABLE events DROP COLUMN recur_count`,
-	`ALTER TABLE events DROP COLUMN recur_start`,
-	`ALTER TABLE events DROP COLUMN recur_next`,
-	`ALTER TABLE events ADD COLUMN recur TEXT`,
-	`ALTER TABLE items ADD COLUMN recurrer TEXT`,
-	`ALTER TABLE events DROP COLUMN recur`,
-	`ALTER TABLE events ADD COLUMN recurrer TEXT NOT NULL DEFAULT ''`,
-	`ALTER TABLE events ADD COLUMN recur_next TEXT NOT NULL DEFAULT ''`,
-	`ALTER TABLE events DROP COLUMN start`,
-	`ALTER TABLE events ADD COLUMN date TEXT NOT NULL DEFAULT ''`,
-	`ALTER TABLE events ADD COLUMN time TEXT NOT NULL DEFAULT ''`,
-	`ALTER TABLE items ADD COLUMN recur_next TEXT NOT NULL DEFAULT ''`,
-	`ALTER TABLE events RENAME TO tasks`,
-}
-
 var (
 	ErrInvalidConfiguration     = errors.New("invalid configuration")
 	ErrIncompatibleSQLMigration = errors.New("incompatible migration")
