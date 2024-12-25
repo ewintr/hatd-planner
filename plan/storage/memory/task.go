@@ -35,8 +35,8 @@ func (t *Task) FindAll() ([]item.Task, error) {
 	defer t.mutex.RUnlock()
 
 	tasks := make([]item.Task, 0, len(t.tasks))
-	for _, event := range t.tasks {
-		tasks = append(tasks, event)
+	for _, tsk := range t.tasks {
+		tasks = append(tasks, tsk)
 	}
 	sort.Slice(tasks, func(i, j int) bool {
 		return tasks[i].ID < tasks[j].ID

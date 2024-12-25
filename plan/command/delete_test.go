@@ -43,9 +43,9 @@ func TestDelete(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			eventRepo := memory.NewTask()
+			taskRepo := memory.NewTask()
 			syncRepo := memory.NewSync()
-			if err := eventRepo.Store(e); err != nil {
+			if err := taskRepo.Store(e); err != nil {
 				t.Errorf("exp nil, got %v", err)
 			}
 			localRepo := memory.NewLocalID()
@@ -53,7 +53,7 @@ func TestDelete(t *testing.T) {
 				t.Errorf("exp nil, got %v", err)
 			}
 
-			cmd := command.NewDelete(localRepo, eventRepo, syncRepo)
+			cmd := command.NewDelete(localRepo, taskRepo, syncRepo)
 
 			actErr := cmd.Execute(tc.main, tc.flags) != nil
 			if tc.expErr != actErr {
@@ -63,7 +63,7 @@ func TestDelete(t *testing.T) {
 				return
 			}
 
-			_, repoErr := eventRepo.Find(e.ID)
+			_, repoErr := taskRepo.Find(e.ID)
 			if !errors.Is(repoErr, storage.ErrNotFound) {
 				t.Errorf("exp %v, got %v", storage.ErrNotFound, actErr)
 			}
