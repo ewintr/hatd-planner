@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/google/uuid"
 )
 
@@ -67,4 +68,11 @@ func NewItem(k Kind, body string) Item {
 		Updated: time.Now(),
 		Body:    body,
 	}
+}
+
+func ItemDiff(exp, got Item) string {
+	expJSON, _ := json.Marshal(exp)
+	actJSON, _ := json.Marshal(got)
+
+	return cmp.Diff(string(expJSON), string(actJSON))
 }
