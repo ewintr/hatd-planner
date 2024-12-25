@@ -230,7 +230,7 @@ func TestDateString(t *testing.T) {
 		{
 			name: "zero",
 			date: item.NewDate(0, 0, 0),
-			exp:  "no date",
+			exp:  "",
 		},
 		{
 			name: "normal",

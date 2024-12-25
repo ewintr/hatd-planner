@@ -102,7 +102,7 @@ func TestTaskItem(t *testing.T) {
 			expItem: item.Item{
 				Kind:    item.KindTask,
 				Updated: time.Time{},
-				Body:    `{"duration":"0s","title":"","time":"00:00"}`,
+				Body:    `{"duration":"0s","title":"","time":""}`,
 			},
 		},
 		{

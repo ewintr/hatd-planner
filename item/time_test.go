@@ -44,11 +44,16 @@ func TestTimeFromString(t *testing.T) {
 	}{
 		{
 			name: "empty",
-			exp:  "00:00",
+			exp:  "",
 		},
 		{
 			name: "invalid",
 			str:  "invalid",
+			exp:  "",
+		},
+		{
+			name: "00:00",
+			str:  "00:00",
 			exp:  "00:00",
 		},
 		{

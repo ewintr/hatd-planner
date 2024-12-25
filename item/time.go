@@ -44,6 +44,10 @@ func NewTimeFromString(timeStr string) Time {
 }
 
 func (t *Time) String() string {
+	if t.t.IsZero() {
+		return ""
+	}
+
 	return t.t.Format(TimeFormat)
 }
 

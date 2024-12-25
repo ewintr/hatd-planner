@@ -167,7 +167,7 @@ func (d Date) DaysBetween(d2 Date) int {
 
 func (d Date) String() string {
 	if d.t.IsZero() {
-		return "no date"
+		return ""
 	}
 
 	return strings.ToLower(d.t.Format(DateFormat))
