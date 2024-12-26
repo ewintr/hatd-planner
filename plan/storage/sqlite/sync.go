@@ -17,7 +17,7 @@ func NewSqliteSync(db *sql.DB) *SqliteSync {
 }
 
 func (s *SqliteSync) FindAll() ([]item.Item, error) {
-	rows, err := s.db.Query("SELECT id, kind, updated, deleted, recurrer, recur_next, body FROM items")
+	rows, err := s.db.Query("SELECT id, kind, updated, deleted, date, recurrer, recur_next, body FROM items")
 	if err != nil {
 		return nil, fmt.Errorf("%w: failed to query items: %v", ErrSqliteFailure, err)
 	}
@@ -26,8 +26,8 @@ func (s *SqliteSync) FindAll() ([]item.Item, error) {
 	var items []item.Item
 	for rows.Next() {
 		var i item.Item
-		var updatedStr, recurStr, recurNextStr string
-		err := rows.Scan(&i.ID, &i.Kind, &updatedStr, &i.Deleted, &recurStr, &recurNextStr, &i.Body)
+		var updatedStr, dateStr, recurStr, recurNextStr string
+		err := rows.Scan(&i.ID, &i.Kind, &updatedStr, &i.Deleted, &dateStr, &recurStr, &recurNextStr, &i.Body)
 		if err != nil {
 			return nil, fmt.Errorf("%w: failed to scan item: %v", ErrSqliteFailure, err)
 		}
@@ -35,6 +35,7 @@ func (s *SqliteSync) FindAll() ([]item.Item, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse updated time: %v", err)
 		}
+		i.Date = item.NewDateFromString(dateStr)
 		i.Recurrer = item.NewRecurrer(recurStr)
 		i.RecurNext = item.NewDateFromString(recurNextStr)
 
@@ -58,12 +59,13 @@ func (s *SqliteSync) Store(i item.Item) error {
 	}
 
 	_, err := s.db.Exec(
-		`INSERT OR REPLACE INTO items (id, kind, updated, deleted, recurrer, recur_next, body)
-		VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		`INSERT OR REPLACE INTO items (id, kind, updated, deleted, date, recurrer, recur_next, body)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
 		i.ID,
 		i.Kind,
 		i.Updated.UTC().Format(time.RFC3339),
 		i.Deleted,
+		i.Date.String(),
 		recurStr,
 		i.RecurNext.String(),
 		sql.NullString{String: i.Body, Valid: i.Body != ""}, // This allows empty string but not NULL

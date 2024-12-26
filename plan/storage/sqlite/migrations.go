@@ -39,4 +39,5 @@ var migrations = []string{
 	`INSERT INTO localids (id, local_id)
     SELECT id, local_id FROM localids_backup`,
 	`DROP TABLE localids_backup`,
+	`ALTER TABLE items ADD COLUMN date TEXT NOT NULL DEFAULT ''`,
 }
