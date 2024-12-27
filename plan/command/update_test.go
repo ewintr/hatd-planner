@@ -28,21 +28,22 @@ func TestUpdateExecute(t *testing.T) {
 	}
 
 	for _, tc := range []struct {
-		name    string
-		localID int
-		main    []string
-		flags   map[string]string
-		expTask item.Task
-		expErr  bool
+		name        string
+		localID     int
+		main        []string
+		fields      map[string]string
+		expTask     item.Task
+		expParseErr bool
+		expDoErr    bool
 	}{
 		{
-			name:   "no args",
-			expErr: true,
+			name:        "no args",
+			expParseErr: true,
 		},
 		{
-			name:    "not found",
-			localID: 1,
-			expErr:  true,
+			name:     "not found",
+			main:     []string{"update", "1"},
+			expDoErr: true,
 		},
 		{
 			name:    "name",
@@ -59,19 +60,19 @@ func TestUpdateExecute(t *testing.T) {
 			},
 		},
 		{
-			name:    "invalid on",
+			name:    "invalid date",
 			localID: lid,
 			main:    []string{"update", fmt.Sprintf("%d", lid)},
-			flags: map[string]string{
+			fields: map[string]string{
 				"on": "invalid",
 			},
-			expErr: true,
+			expParseErr: true,
 		},
 		{
-			name:    "on",
+			name:    "date",
 			localID: lid,
 			main:    []string{"update", fmt.Sprintf("%d", lid)},
-			flags: map[string]string{
+			fields: map[string]string{
 				"on": "2024-10-02",
 			},
 			expTask: item.Task{
@@ -85,20 +86,20 @@ func TestUpdateExecute(t *testing.T) {
 			},
 		},
 		{
-			name:    "invalid at",
+			name:    "invalid time",
 			localID: lid,
 			main:    []string{"update", fmt.Sprintf("%d", lid)},
-			flags: map[string]string{
+			fields: map[string]string{
 				"at": "invalid",
 			},
-			expErr: true,
+			expParseErr: true,
 		},
 		{
-			name:    "at",
+			name:    "time",
 			localID: lid,
 			main:    []string{"update", fmt.Sprintf("%d", lid)},
-			flags: map[string]string{
-				"at": "11:00",
+			fields: map[string]string{
+				"time": "11:00",
 			},
 			expTask: item.Task{
 				ID:   tskID,
@@ -111,37 +112,19 @@ func TestUpdateExecute(t *testing.T) {
 			},
 		},
 		{
-			name:    "on and at",
+			name:    "invalid duration",
 			localID: lid,
 			main:    []string{"update", fmt.Sprintf("%d", lid)},
-			flags: map[string]string{
-				"on": "2024-10-02",
-				"at": "11:00",
-			},
-			expTask: item.Task{
-				ID:   tskID,
-				Date: item.NewDate(2024, 10, 2),
-				TaskBody: item.TaskBody{
-					Title:    title,
-					Time:     item.NewTime(11, 0),
-					Duration: oneHour,
-				},
-			},
-		},
-		{
-			name:    "invalid for",
-			localID: lid,
-			main:    []string{"update", fmt.Sprintf("%d", lid)},
-			flags: map[string]string{
+			fields: map[string]string{
 				"for": "invalid",
 			},
-			expErr: true,
+			expParseErr: true,
 		},
 		{
-			name:    "for",
+			name:    "duration",
 			localID: lid,
 			main:    []string{"update", fmt.Sprintf("%d", lid)},
-			flags: map[string]string{
+			fields: map[string]string{
 				"for": "2h",
 			},
 			expTask: item.Task{
@@ -155,17 +138,17 @@ func TestUpdateExecute(t *testing.T) {
 			},
 		},
 		{
-			name: "invalid rec",
+			name: "invalid recurrer",
 			main: []string{"update", fmt.Sprintf("%d", lid)},
-			flags: map[string]string{
+			fields: map[string]string{
 				"rec": "invalud",
 			},
-			expErr: true,
+			expParseErr: true,
 		},
 		{
-			name: "valid rec",
+			name: "valid recurrer",
 			main: []string{"update", fmt.Sprintf("%d", lid)},
-			flags: map[string]string{
+			fields: map[string]string{
 				"rec": "2024-12-08, daily",
 			},
 			expTask: item.Task{
@@ -199,12 +182,22 @@ func TestUpdateExecute(t *testing.T) {
 				t.Errorf("exp nil, ,got %v", err)
 			}
 
-			cmd := command.NewUpdate(localIDRepo, taskRepo, syncRepo)
-			actParseErr := cmd.Execute(tc.main, tc.flags) != nil
-			if tc.expErr != actParseErr {
-				t.Errorf("exp %v, got %v", tc.expErr, actParseErr)
+			cmd, actErr := command.NewUpdateArgs().Parse(tc.main, tc.fields)
+			if tc.expParseErr != (actErr != nil) {
+				t.Errorf("exp %v, got %v", tc.expParseErr, actErr)
 			}
-			if tc.expErr {
+			if tc.expParseErr {
+				return
+			}
+			actDoErr := cmd.Do(command.Dependencies{
+				TaskRepo:    taskRepo,
+				LocalIDRepo: localIDRepo,
+				SyncRepo:    syncRepo,
+			}) != nil
+			if tc.expDoErr != actDoErr {
+				t.Errorf("exp %v, got %v", tc.expDoErr, actDoErr)
+			}
+			if tc.expDoErr {
 				return
 			}
 

@@ -35,16 +35,12 @@ func main() {
 
 	syncClient := client.New(conf.SyncURL, conf.ApiKey)
 
-	cli := command.CLI{
-		Commands: []command.Command{
-			command.NewAdd(localIDRepo, taskRepo, syncRepo),
-			command.NewList(localIDRepo, taskRepo),
-			command.NewUpdate(localIDRepo, taskRepo, syncRepo),
-			command.NewDelete(localIDRepo, taskRepo, syncRepo),
-			command.NewSync(syncClient, syncRepo, localIDRepo, taskRepo),
-		},
-	}
-
+	cli := command.NewCLI(command.Dependencies{
+		LocalIDRepo: localIDRepo,
+		TaskRepo:    taskRepo,
+		SyncRepo:    syncRepo,
+		SyncClient:  syncClient,
+	})
 	if err := cli.Run(os.Args[1:]); err != nil {
 		fmt.Println(err)
 		os.Exit(1)

@@ -4,71 +4,93 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
-	"go-mod.ewintr.nl/planner/plan/storage"
+	"go-mod.ewintr.nl/planner/item"
 )
 
-type Update struct {
-	localIDRepo storage.LocalID
-	taskRepo    storage.Task
-	syncRepo    storage.Sync
-	argSet      *ArgSet
-	localID     int
+type UpdateArgs struct {
+	fieldTPL map[string][]string
+	LocalID  int
+	Title    string
+	Date     item.Date
+	Time     item.Time
+	Duration time.Duration
+	Recurrer item.Recurrer
 }
 
-func NewUpdate(localIDRepo storage.LocalID, taskRepo storage.Task, syncRepo storage.Sync) Command {
-	return &Update{
-		localIDRepo: localIDRepo,
-		taskRepo:    taskRepo,
-		syncRepo:    syncRepo,
-		argSet: &ArgSet{
-			Flags: map[string]Flag{
-				FlagTitle: &FlagString{},
-				FlagOn:    &FlagDate{},
-				FlagAt:    &FlagTime{},
-				FlagFor:   &FlagDuration{},
-				FlagRec:   &FlagRecurrer{},
-			},
+func NewUpdateArgs() UpdateArgs {
+	return UpdateArgs{
+		fieldTPL: map[string][]string{
+			"date":     []string{"d", "date", "on"},
+			"time":     []string{"t", "time", "at"},
+			"duration": []string{"dur", "duration", "for"},
+			"recurrer": []string{"rec", "recurrer"},
 		},
 	}
 }
 
-func (update *Update) Execute(main []string, flags map[string]string) error {
+func (ua UpdateArgs) Parse(main []string, fields map[string]string) (Command, error) {
 	if len(main) < 2 || main[0] != "update" {
-		return ErrWrongCommand
+		return nil, ErrWrongCommand
 	}
 	localID, err := strconv.Atoi(main[1])
 	if err != nil {
-		return fmt.Errorf("not a local id: %v", main[1])
+		return nil, fmt.Errorf("not a local id: %v", main[1])
 	}
-	update.localID = localID
-	main = main[2:]
-
-	as := update.argSet
-	as.Main = strings.Join(main, " ")
-	for k := range as.Flags {
-		v, ok := flags[k]
-		if !ok {
-			continue
-		}
-		if err := as.Set(k, v); err != nil {
-			return fmt.Errorf("could not set %s: %v", k, err)
-		}
+	fields, err = ResolveFields(fields, ua.fieldTPL)
+	if err != nil {
+		return nil, err
 	}
-	update.argSet = as
+	args := UpdateArgs{
+		LocalID: localID,
+		Title:   strings.Join(main[2:], " "),
+	}
 
-	return update.do()
+	if val, ok := fields["date"]; ok {
+		d := item.NewDateFromString(val)
+		if d.IsZero() {
+			return nil, fmt.Errorf("%w: could not parse date", ErrInvalidArg)
+		}
+		args.Date = d
+	}
+	if val, ok := fields["time"]; ok {
+		t := item.NewTimeFromString(val)
+		if t.IsZero() {
+			return nil, fmt.Errorf("%w: could not parse time", ErrInvalidArg)
+		}
+		args.Time = t
+	}
+	if val, ok := fields["duration"]; ok {
+		d, err := time.ParseDuration(val)
+		if err != nil {
+			return nil, fmt.Errorf("%w: could not parse duration", ErrInvalidArg)
+		}
+		args.Duration = d
+	}
+	if val, ok := fields["recurrer"]; ok {
+		rec := item.NewRecurrer(val)
+		if rec == nil {
+			return nil, fmt.Errorf("%w: could not parse recurrer", ErrInvalidArg)
+		}
+		args.Recurrer = rec
+	}
+
+	return &Update{args}, nil
 }
 
-func (update *Update) do() error {
-	as := update.argSet
+type Update struct {
+	args UpdateArgs
+}
+
+func (u *Update) Do(deps Dependencies) error {
 	var id string
-	idMap, err := update.localIDRepo.FindAll()
+	idMap, err := deps.LocalIDRepo.FindAll()
 	if err != nil {
 		return fmt.Errorf("could not get local ids: %v", err)
 	}
 	for tid, lid := range idMap {
-		if update.localID == lid {
+		if u.args.LocalID == lid {
 			id = tid
 		}
 	}
@@ -76,32 +98,33 @@ func (update *Update) do() error {
 		return fmt.Errorf("could not find local id")
 	}
 
-	tsk, err := update.taskRepo.Find(id)
+	tsk, err := deps.TaskRepo.Find(id)
 	if err != nil {
 		return fmt.Errorf("could not find task")
 	}
 
-	if as.Main != "" {
-		tsk.Title = as.Main
+	if u.args.Title != "" {
+		tsk.Title = u.args.Title
 	}
-	if as.IsSet(FlagOn) {
-		tsk.Date = as.GetDate(FlagOn)
+	if !u.args.Date.IsZero() {
+		tsk.Date = u.args.Date
 	}
-	if as.IsSet(FlagAt) {
-		tsk.Time = as.GetTime(FlagAt)
+	if !u.args.Time.IsZero() {
+		tsk.Time = u.args.Time
 	}
-	if as.IsSet(FlagFor) {
-		tsk.Duration = as.GetDuration(FlagFor)
+	if u.args.Duration != 0 {
+		tsk.Duration = u.args.Duration
 	}
-	if as.IsSet(FlagRec) {
-		tsk.Recurrer = as.GetRecurrer(FlagRec)
+	if u.args.Recurrer != nil {
+		tsk.Recurrer = u.args.Recurrer
+		tsk.RecurNext = tsk.Recurrer.First()
 	}
 
 	if !tsk.Valid() {
 		return fmt.Errorf("task is unvalid")
 	}
 
-	if err := update.taskRepo.Store(tsk); err != nil {
+	if err := deps.TaskRepo.Store(tsk); err != nil {
 		return fmt.Errorf("could not store task: %v", err)
 	}
 
@@ -109,7 +132,7 @@ func (update *Update) do() error {
 	if err != nil {
 		return fmt.Errorf("could not convert task to sync item: %v", err)
 	}
-	if err := update.syncRepo.Store(it); err != nil {
+	if err := deps.SyncRepo.Store(it); err != nil {
 		return fmt.Errorf("could not store sync item: %v", err)
 	}
 

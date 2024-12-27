@@ -14,14 +14,13 @@ func TestAdd(t *testing.T) {
 
 	aDate := item.NewDate(2024, 11, 2)
 	aTime := item.NewTime(12, 0)
-	aDay := time.Duration(24) * time.Hour
 	anHourStr := "1h"
 	anHour := time.Hour
 
 	for _, tc := range []struct {
 		name    string
 		main    []string
-		flags   map[string]string
+		fields  map[string]string
 		expErr  bool
 		expTask item.Task
 	}{
@@ -32,38 +31,18 @@ func TestAdd(t *testing.T) {
 		{
 			name: "title missing",
 			main: []string{"add"},
-			flags: map[string]string{
-				command.FlagOn: aDate.String(),
+			fields: map[string]string{
+				"date": aDate.String(),
 			},
 			expErr: true,
 		},
 		{
-			name:   "date missing",
-			main:   []string{"add", "some", "title"},
-			expErr: true,
-		},
-		{
-			name: "only date",
+			name: "date time duration",
 			main: []string{"add", "title"},
-			flags: map[string]string{
-				command.FlagOn: aDate.String(),
-			},
-			expTask: item.Task{
-				ID:   "title",
-				Date: aDate,
-				TaskBody: item.TaskBody{
-					Title:    "title",
-					Duration: aDay,
-				},
-			},
-		},
-		{
-			name: "date, time and duration",
-			main: []string{"add", "title"},
-			flags: map[string]string{
-				command.FlagOn:  aDate.String(),
-				command.FlagAt:  aTime.String(),
-				command.FlagFor: anHourStr,
+			fields: map[string]string{
+				"date":     aDate.String(),
+				"time":     aTime.String(),
+				"duration": anHourStr,
 			},
 			expTask: item.Task{
 				ID:   "title",
@@ -75,27 +54,24 @@ func TestAdd(t *testing.T) {
 				},
 			},
 		},
-		{
-			name: "date and duration",
-			main: []string{"add", "title"},
-			flags: map[string]string{
-				command.FlagOn:  aDate.String(),
-				command.FlagFor: anHourStr,
-			},
-			expErr: true,
-		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			taskRepo := memory.NewTask()
-			localRepo := memory.NewLocalID()
+			localIDRepo := memory.NewLocalID()
 			syncRepo := memory.NewSync()
-			cmd := command.NewAdd(localRepo, taskRepo, syncRepo)
-			actParseErr := cmd.Execute(tc.main, tc.flags) != nil
-			if tc.expErr != actParseErr {
+			cmd, actParseErr := command.NewAddArgs().Parse(tc.main, tc.fields)
+			if tc.expErr != (actParseErr != nil) {
 				t.Errorf("exp %v, got %v", tc.expErr, actParseErr)
 			}
 			if tc.expErr {
 				return
+			}
+			if err := cmd.Do(command.Dependencies{
+				TaskRepo:    taskRepo,
+				LocalIDRepo: localIDRepo,
+				SyncRepo:    syncRepo,
+			}); err != nil {
+				t.Errorf("exp nil, got %v", err)
 			}
 
 			actTasks, err := taskRepo.FindAll()
@@ -106,7 +82,7 @@ func TestAdd(t *testing.T) {
 				t.Errorf("exp 1, got %d", len(actTasks))
 			}
 
-			actLocalIDs, err := localRepo.FindAll()
+			actLocalIDs, err := localIDRepo.FindAll()
 			if err != nil {
 				t.Errorf("exp nil, got %v", err)
 			}

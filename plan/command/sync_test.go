@@ -14,11 +14,6 @@ import (
 func TestSyncParse(t *testing.T) {
 	t.Parallel()
 
-	syncClient := client.NewMemory()
-	syncRepo := memory.NewSync()
-	localIDRepo := memory.NewLocalID()
-	taskRepo := memory.NewTask()
-
 	for _, tc := range []struct {
 		name   string
 		main   []string
@@ -39,9 +34,8 @@ func TestSyncParse(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			cmd := command.NewSync(syncClient, syncRepo, localIDRepo, taskRepo)
-			actErr := cmd.Execute(tc.main, nil) != nil
-			if tc.expErr != actErr {
+			_, actErr := command.SyncArgs{}.Parse(tc.main, nil)
+			if tc.expErr != (actErr != nil) {
 				t.Errorf("exp %v, got %v", tc.expErr, actErr)
 			}
 		})
@@ -82,8 +76,16 @@ func TestSyncSend(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			cmd := command.NewSync(syncClient, syncRepo, localIDRepo, taskRepo)
-			if err := cmd.Execute([]string{"sync"}, nil); err != nil {
+			cmd, err := command.SyncArgs{}.Parse([]string{"sync"}, nil)
+			if err != nil {
+				t.Errorf("exp nil, got %v", err)
+			}
+			if err := cmd.Do(command.Dependencies{
+				TaskRepo:    taskRepo,
+				LocalIDRepo: localIDRepo,
+				SyncRepo:    syncRepo,
+				SyncClient:  syncClient,
+			}); err != nil {
 				t.Errorf("exp nil, got %v", err)
 			}
 			actItems, actErr := syncClient.Updated(tc.ks, tc.ts)
@@ -181,12 +183,12 @@ func TestSyncReceive(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			// setup
 			syncClient := client.NewMemory()
 			syncRepo := memory.NewSync()
 			localIDRepo := memory.NewLocalID()
 			taskRepo := memory.NewTask()
 
+			// setup
 			for i, p := range tc.present {
 				if err := taskRepo.Store(p); err != nil {
 					t.Errorf("exp nil, got %v", err)
@@ -200,8 +202,16 @@ func TestSyncReceive(t *testing.T) {
 			}
 
 			// sync
-			cmd := command.NewSync(syncClient, syncRepo, localIDRepo, taskRepo)
-			if err := cmd.Execute([]string{"sync"}, nil); err != nil {
+			cmd, err := command.NewSyncArgs().Parse([]string{"sync"}, nil)
+			if err != nil {
+				t.Errorf("exp nil, got %v", err)
+			}
+			if err := cmd.Do(command.Dependencies{
+				TaskRepo:    taskRepo,
+				LocalIDRepo: localIDRepo,
+				SyncRepo:    syncRepo,
+				SyncClient:  syncClient,
+			}); err != nil {
 				t.Errorf("exp nil, got %v", err)
 			}
 

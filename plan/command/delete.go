@@ -3,46 +3,45 @@ package command
 import (
 	"fmt"
 	"strconv"
-
-	"go-mod.ewintr.nl/planner/plan/storage"
 )
 
-type Delete struct {
-	localIDRepo storage.LocalID
-	taskRepo    storage.Task
-	syncRepo    storage.Sync
-	localID     int
+type DeleteArgs struct {
+	LocalID int
 }
 
-func NewDelete(localIDRepo storage.LocalID, taskRepo storage.Task, syncRepo storage.Sync) Command {
-	return &Delete{
-		localIDRepo: localIDRepo,
-		taskRepo:    taskRepo,
-		syncRepo:    syncRepo,
-	}
+func NewDeleteArgs() DeleteArgs {
+	return DeleteArgs{}
 }
 
-func (del *Delete) Execute(main []string, flags map[string]string) error {
+func (da DeleteArgs) Parse(main []string, flags map[string]string) (Command, error) {
 	if len(main) < 2 || main[0] != "delete" {
-		return ErrWrongCommand
+		return nil, ErrWrongCommand
 	}
+
 	localID, err := strconv.Atoi(main[1])
 	if err != nil {
-		return fmt.Errorf("not a local id: %v", main[1])
+		return nil, fmt.Errorf("not a local id: %v", main[1])
 	}
-	del.localID = localID
 
-	return del.do()
+	return &Delete{
+		args: DeleteArgs{
+			LocalID: localID,
+		},
+	}, nil
 }
 
-func (del *Delete) do() error {
+type Delete struct {
+	args DeleteArgs
+}
+
+func (del *Delete) Do(deps Dependencies) error {
 	var id string
-	idMap, err := del.localIDRepo.FindAll()
+	idMap, err := deps.LocalIDRepo.FindAll()
 	if err != nil {
 		return fmt.Errorf("could not get local ids: %v", err)
 	}
 	for tskID, lid := range idMap {
-		if del.localID == lid {
+		if del.args.LocalID == lid {
 			id = tskID
 		}
 	}
@@ -50,7 +49,7 @@ func (del *Delete) do() error {
 		return fmt.Errorf("could not find local id")
 	}
 
-	tsk, err := del.taskRepo.Find(id)
+	tsk, err := deps.TaskRepo.Find(id)
 	if err != nil {
 		return fmt.Errorf("could not get task: %v", err)
 	}
@@ -60,15 +59,15 @@ func (del *Delete) do() error {
 		return fmt.Errorf("could not convert task to sync item: %v", err)
 	}
 	it.Deleted = true
-	if err := del.syncRepo.Store(it); err != nil {
+	if err := deps.SyncRepo.Store(it); err != nil {
 		return fmt.Errorf("could not store sync item: %v", err)
 	}
 
-	if err := del.localIDRepo.Delete(id); err != nil {
+	if err := deps.LocalIDRepo.Delete(id); err != nil {
 		return fmt.Errorf("could not delete local id: %v", err)
 	}
 
-	if err := del.taskRepo.Delete(id); err != nil {
+	if err := deps.TaskRepo.Delete(id); err != nil {
 		return fmt.Errorf("could not delete task: %v", err)
 	}
 

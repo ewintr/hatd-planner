@@ -22,20 +22,21 @@ func TestDelete(t *testing.T) {
 	}
 
 	for _, tc := range []struct {
-		name   string
-		main   []string
-		flags  map[string]string
-		expErr bool
+		name        string
+		main        []string
+		flags       map[string]string
+		expParseErr bool
+		expDoErr    bool
 	}{
 		{
-			name:   "invalid",
-			main:   []string{"update"},
-			expErr: true,
+			name:        "invalid",
+			main:        []string{"update"},
+			expParseErr: true,
 		},
 		{
-			name:   "not found",
-			main:   []string{"delete", "5"},
-			expErr: true,
+			name:     "not found",
+			main:     []string{"delete", "5"},
+			expDoErr: true,
 		},
 		{
 			name: "valid",
@@ -48,26 +49,35 @@ func TestDelete(t *testing.T) {
 			if err := taskRepo.Store(e); err != nil {
 				t.Errorf("exp nil, got %v", err)
 			}
-			localRepo := memory.NewLocalID()
-			if err := localRepo.Store(e.ID, 1); err != nil {
+			localIDRepo := memory.NewLocalID()
+			if err := localIDRepo.Store(e.ID, 1); err != nil {
 				t.Errorf("exp nil, got %v", err)
 			}
 
-			cmd := command.NewDelete(localRepo, taskRepo, syncRepo)
-
-			actErr := cmd.Execute(tc.main, tc.flags) != nil
-			if tc.expErr != actErr {
-				t.Errorf("exp %v, got %v", tc.expErr, actErr)
+			cmd, actParseErr := command.NewDeleteArgs().Parse(tc.main, tc.flags)
+			if tc.expParseErr != (actParseErr != nil) {
+				t.Errorf("exp %v, got %v", tc.expParseErr, actParseErr)
 			}
-			if tc.expErr {
+			if tc.expParseErr {
+				return
+			}
+			actDoErr := cmd.Do(command.Dependencies{
+				TaskRepo:    taskRepo,
+				LocalIDRepo: localIDRepo,
+				SyncRepo:    syncRepo,
+			}) != nil
+			if tc.expDoErr != actDoErr {
+				t.Errorf("exp false, got %v", actDoErr)
+			}
+			if tc.expDoErr {
 				return
 			}
 
 			_, repoErr := taskRepo.Find(e.ID)
 			if !errors.Is(repoErr, storage.ErrNotFound) {
-				t.Errorf("exp %v, got %v", storage.ErrNotFound, actErr)
+				t.Errorf("exp %v, got %v", storage.ErrNotFound, repoErr)
 			}
-			idMap, idErr := localRepo.FindAll()
+			idMap, idErr := localIDRepo.FindAll()
 			if idErr != nil {
 				t.Errorf("exp nil, got %v", idErr)
 			}

@@ -47,10 +47,18 @@ func TestList(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			cmd := command.NewList(localRepo, taskRepo)
-			actErr := cmd.Execute(tc.main, nil) != nil
-			if tc.expErr != actErr {
+			cmd, actErr := command.NewListArgs().Parse(tc.main, nil)
+			if tc.expErr != (actErr != nil) {
 				t.Errorf("exp %v, got %v", tc.expErr, actErr)
+			}
+			if tc.expErr {
+				return
+			}
+			if err := cmd.Do(command.Dependencies{
+				TaskRepo:    taskRepo,
+				LocalIDRepo: localRepo,
+			}); err != nil {
+				t.Errorf("exp nil, got %v", err)
 			}
 		})
 	}

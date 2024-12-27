@@ -3,66 +3,104 @@ package command
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
+
+	"go-mod.ewintr.nl/planner/plan/storage"
+	"go-mod.ewintr.nl/planner/sync/client"
 )
 
 const (
-	FlagTitle = "title"
-	FlagOn    = "on"
-	FlagAt    = "at"
-	FlagFor   = "for"
-	FlagRec   = "rec"
+	DateFormat = "2006-01-02"
+	TimeFormat = "15:04"
 )
 
+var (
+	ErrWrongCommand = errors.New("wrong command")
+	ErrInvalidArg   = errors.New("invalid argument")
+)
+
+type Dependencies struct {
+	LocalIDRepo storage.LocalID
+	TaskRepo    storage.Task
+	SyncRepo    storage.Sync
+	SyncClient  client.Client
+}
+
+type CommandArgs interface {
+	Parse(main []string, fields map[string]string) (Command, error)
+}
+
 type Command interface {
-	Execute([]string, map[string]string) error
+	Do(deps Dependencies) error
 }
 
 type CLI struct {
-	Commands []Command
+	deps    Dependencies
+	cmdArgs []CommandArgs
+}
+
+func NewCLI(deps Dependencies) *CLI {
+	return &CLI{
+		deps: deps,
+		cmdArgs: []CommandArgs{
+			NewAddArgs(), NewDeleteArgs(), NewListArgs(),
+			NewSyncArgs(), NewUpdateArgs(),
+		},
+	}
 }
 
 func (cli *CLI) Run(args []string) error {
-	main, flags, err := ParseFlags(args)
-	if err != nil {
-		return err
-	}
-	for _, c := range cli.Commands {
-		err := c.Execute(main, flags)
+	main, flags := FindFields(args)
+	for _, ca := range cli.cmdArgs {
+		cmd, err := ca.Parse(main, flags)
 		switch {
 		case errors.Is(err, ErrWrongCommand):
 			continue
 		case err != nil:
 			return err
 		default:
-			return nil
+			return cmd.Do(cli.deps)
 		}
 	}
 
 	return fmt.Errorf("could not find matching command")
 }
 
-func ParseFlags(args []string) ([]string, map[string]string, error) {
-	flags := make(map[string]string)
+func FindFields(args []string) ([]string, map[string]string) {
+	fields := make(map[string]string)
 	main := make([]string, 0)
-	var inMain bool
 	for i := 0; i < len(args); i++ {
-		if strings.HasPrefix(args[i], "-") {
-			inMain = false
-			if i+1 >= len(args) {
-				return nil, nil, fmt.Errorf("flag wihout value")
-			}
-			flags[strings.TrimPrefix(args[i], "-")] = args[i+1]
-			i++
+		if k, v, ok := strings.Cut(args[i], ":"); ok && !strings.Contains(k, " ") {
+			fields[k] = v
 			continue
 		}
-
-		if !inMain && len(main) > 0 {
-			return nil, nil, fmt.Errorf("two mains")
-		}
-		inMain = true
 		main = append(main, args[i])
 	}
 
-	return main, flags, nil
+	return main, fields
+}
+
+func ResolveFields(fields map[string]string, tmpl map[string][]string) (map[string]string, error) {
+	res := make(map[string]string)
+	for k, v := range fields {
+		for tk, tv := range tmpl {
+			if slices.Contains(tv, k) {
+				if _, ok := res[tk]; ok {
+					return nil, fmt.Errorf("%w: duplicate field: %v", ErrInvalidArg, tk)
+				}
+				res[tk] = v
+				delete(fields, k)
+			}
+		}
+	}
+	if len(fields) > 0 {
+		ks := make([]string, 0, len(fields))
+		for k := range fields {
+			ks = append(ks, k)
+		}
+		return nil, fmt.Errorf("%w: unknown field(s): %v", ErrInvalidArg, strings.Join(ks, ","))
+	}
+
+	return res, nil
 }

@@ -7,52 +7,43 @@ import (
 
 	"go-mod.ewintr.nl/planner/item"
 	"go-mod.ewintr.nl/planner/plan/storage"
-	"go-mod.ewintr.nl/planner/sync/client"
 )
 
-type Sync struct {
-	client      client.Client
-	syncRepo    storage.Sync
-	localIDRepo storage.LocalID
-	taskRepo    storage.Task
+type SyncArgs struct{}
+
+func NewSyncArgs() SyncArgs {
+	return SyncArgs{}
 }
 
-func NewSync(client client.Client, syncRepo storage.Sync, localIDRepo storage.LocalID, taskRepo storage.Task) Command {
-	return &Sync{
-		client:      client,
-		syncRepo:    syncRepo,
-		localIDRepo: localIDRepo,
-		taskRepo:    taskRepo,
-	}
-}
-
-func (sync *Sync) Execute(main []string, flags map[string]string) error {
+func (sa SyncArgs) Parse(main []string, flags map[string]string) (Command, error) {
 	if len(main) == 0 || main[0] != "sync" {
-		return ErrWrongCommand
+		return nil, ErrWrongCommand
 	}
 
-	return sync.do()
+	return &Sync{}, nil
 }
 
-func (sync *Sync) do() error {
+type Sync struct{}
+
+func (s *Sync) Do(deps Dependencies) error {
 	// local new and updated
-	sendItems, err := sync.syncRepo.FindAll()
+	sendItems, err := deps.SyncRepo.FindAll()
 	if err != nil {
 		return fmt.Errorf("could not get updated items: %v", err)
 	}
-	if err := sync.client.Update(sendItems); err != nil {
+	if err := deps.SyncClient.Update(sendItems); err != nil {
 		return fmt.Errorf("could not send updated items: %v", err)
 	}
-	if err := sync.syncRepo.DeleteAll(); err != nil {
+	if err := deps.SyncRepo.DeleteAll(); err != nil {
 		return fmt.Errorf("could not clear updated items: %v", err)
 	}
 
 	// get new/updated items
-	ts, err := sync.syncRepo.LastUpdate()
+	ts, err := deps.SyncRepo.LastUpdate()
 	if err != nil {
 		return fmt.Errorf("could not find timestamp of last update: %v", err)
 	}
-	recItems, err := sync.client.Updated([]item.Kind{item.KindTask}, ts)
+	recItems, err := deps.SyncClient.Updated([]item.Kind{item.KindTask}, ts)
 	if err != nil {
 		return fmt.Errorf("could not receive updates: %v", err)
 	}
@@ -60,10 +51,10 @@ func (sync *Sync) do() error {
 	updated := make([]item.Item, 0)
 	for _, ri := range recItems {
 		if ri.Deleted {
-			if err := sync.localIDRepo.Delete(ri.ID); err != nil && !errors.Is(err, storage.ErrNotFound) {
+			if err := deps.LocalIDRepo.Delete(ri.ID); err != nil && !errors.Is(err, storage.ErrNotFound) {
 				return fmt.Errorf("could not delete local id: %v", err)
 			}
-			if err := sync.taskRepo.Delete(ri.ID); err != nil && !errors.Is(err, storage.ErrNotFound) {
+			if err := deps.TaskRepo.Delete(ri.ID); err != nil && !errors.Is(err, storage.ErrNotFound) {
 				return fmt.Errorf("could not delete task: %v", err)
 			}
 			continue
@@ -71,7 +62,7 @@ func (sync *Sync) do() error {
 		updated = append(updated, ri)
 	}
 
-	lidMap, err := sync.localIDRepo.FindAll()
+	lidMap, err := deps.LocalIDRepo.FindAll()
 	if err != nil {
 		return fmt.Errorf("could not get local ids: %v", err)
 	}
@@ -87,17 +78,17 @@ func (sync *Sync) do() error {
 			RecurNext: u.RecurNext,
 			TaskBody:  tskBody,
 		}
-		if err := sync.taskRepo.Store(tsk); err != nil {
+		if err := deps.TaskRepo.Store(tsk); err != nil {
 			return fmt.Errorf("could not store task: %v", err)
 		}
 		lid, ok := lidMap[u.ID]
 		if !ok {
-			lid, err = sync.localIDRepo.Next()
+			lid, err = deps.LocalIDRepo.Next()
 			if err != nil {
 				return fmt.Errorf("could not get next local id: %v", err)
 			}
 
-			if err := sync.localIDRepo.Store(u.ID, lid); err != nil {
+			if err := deps.LocalIDRepo.Store(u.ID, lid); err != nil {
 				return fmt.Errorf("could not store local id: %v", err)
 			}
 		}

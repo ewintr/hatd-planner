@@ -3,109 +3,107 @@ package command
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"go-mod.ewintr.nl/planner/item"
-	"go-mod.ewintr.nl/planner/plan/storage"
 )
 
-type Add struct {
-	localIDRepo storage.LocalID
-	taskRepo    storage.Task
-	syncRepo    storage.Sync
-	argSet      *ArgSet
+type AddArgs struct {
+	fieldTPL map[string][]string
+	task     item.Task
 }
 
-func NewAdd(localRepo storage.LocalID, taskRepo storage.Task, syncRepo storage.Sync) Command {
-	return &Add{
-		localIDRepo: localRepo,
-		taskRepo:    taskRepo,
-		syncRepo:    syncRepo,
-		argSet: &ArgSet{
-			Flags: map[string]Flag{
-				FlagOn:  &FlagDate{},
-				FlagAt:  &FlagTime{},
-				FlagFor: &FlagDuration{},
-				FlagRec: &FlagRecurrer{},
-			},
+func NewAddArgs() AddArgs {
+	return AddArgs{
+		fieldTPL: map[string][]string{
+			"date":     []string{"d", "date", "on"},
+			"time":     []string{"t", "time", "at"},
+			"duration": []string{"dur", "duration", "for"},
+			"recurrer": []string{"rec", "recurrer"},
 		},
 	}
 }
 
-func (add *Add) Execute(main []string, flags map[string]string) error {
+func (aa AddArgs) Parse(main []string, fields map[string]string) (Command, error) {
 	if len(main) == 0 || main[0] != "add" {
-		return ErrWrongCommand
+		return nil, ErrWrongCommand
 	}
-	as := add.argSet
-	if len(main) > 1 {
-		as.Main = strings.Join(main[1:], " ")
+	main = main[1:]
+	if len(main) == 0 {
+		return nil, fmt.Errorf("%w: title is required for add", ErrInvalidArg)
 	}
-	for k := range as.Flags {
-		v, ok := flags[k]
-		if !ok {
-			continue
-		}
-		if err := as.Set(k, v); err != nil {
-			return fmt.Errorf("could not set %s: %v", k, err)
-		}
-	}
-	if as.Main == "" {
-		return fmt.Errorf("%w: title is required", ErrInvalidArg)
-	}
-	if !as.IsSet(FlagOn) {
-		return fmt.Errorf("%w: date is required", ErrInvalidArg)
-	}
-	if !as.IsSet(FlagAt) && as.IsSet(FlagFor) {
-		return fmt.Errorf("%w: can not have duration without start time", ErrInvalidArg)
-	}
-	if as.IsSet(FlagAt) && !as.IsSet(FlagFor) {
-		if err := as.Flags[FlagFor].Set("1h"); err != nil {
-			return fmt.Errorf("could not set duration to one hour")
-		}
-	}
-	if !as.IsSet(FlagAt) && !as.IsSet(FlagFor) {
-		if err := as.Flags[FlagFor].Set("24h"); err != nil {
-			return fmt.Errorf("could not set duration to 24 hours")
-		}
+	fields, err := ResolveFields(fields, aa.fieldTPL)
+	if err != nil {
+		return nil, err
 	}
 
-	return add.do()
-}
-
-func (add *Add) do() error {
-	as := add.argSet
-	rec := as.GetRecurrer(FlagRec)
 	tsk := item.Task{
-		ID:       uuid.New().String(),
-		Date:     as.GetDate(FlagOn),
-		Recurrer: rec,
+		ID: uuid.New().String(),
 		TaskBody: item.TaskBody{
-			Title:    as.Main,
-			Time:     as.GetTime(FlagAt),
-			Duration: as.GetDuration(FlagFor),
+			Title: strings.Join(main, ","),
 		},
 	}
-	if rec != nil {
-		tsk.RecurNext = rec.First()
+
+	if val, ok := fields["date"]; ok {
+		d := item.NewDateFromString(val)
+		if d.IsZero() {
+			return nil, fmt.Errorf("%w: could not parse date", ErrInvalidArg)
+		}
+		tsk.Date = d
+	}
+	if val, ok := fields["time"]; ok {
+		t := item.NewTimeFromString(val)
+		if t.IsZero() {
+			return nil, fmt.Errorf("%w: could not parse time", ErrInvalidArg)
+		}
+		tsk.Time = t
+	}
+	if val, ok := fields["duration"]; ok {
+		d, err := time.ParseDuration(val)
+		if err != nil {
+			return nil, fmt.Errorf("%w: could not parse duration", ErrInvalidArg)
+		}
+		tsk.Duration = d
+	}
+	if val, ok := fields["recurrer"]; ok {
+		rec := item.NewRecurrer(val)
+		if rec == nil {
+			return nil, fmt.Errorf("%w: could not parse recurrer", ErrInvalidArg)
+		}
+		tsk.Recurrer = rec
+		tsk.RecurNext = tsk.Recurrer.First()
 	}
 
-	if err := add.taskRepo.Store(tsk); err != nil {
+	return &Add{
+		args: AddArgs{
+			task: tsk,
+		},
+	}, nil
+}
+
+type Add struct {
+	args AddArgs
+}
+
+func (a *Add) Do(deps Dependencies) error {
+	if err := deps.TaskRepo.Store(a.args.task); err != nil {
 		return fmt.Errorf("could not store event: %v", err)
 	}
 
-	localID, err := add.localIDRepo.Next()
+	localID, err := deps.LocalIDRepo.Next()
 	if err != nil {
 		return fmt.Errorf("could not create next local id: %v", err)
 	}
-	if err := add.localIDRepo.Store(tsk.ID, localID); err != nil {
+	if err := deps.LocalIDRepo.Store(a.args.task.ID, localID); err != nil {
 		return fmt.Errorf("could not store local id: %v", err)
 	}
 
-	it, err := tsk.Item()
+	it, err := a.args.task.Item()
 	if err != nil {
 		return fmt.Errorf("could not convert event to sync item: %v", err)
 	}
-	if err := add.syncRepo.Store(it); err != nil {
+	if err := deps.SyncRepo.Store(it); err != nil {
 		return fmt.Errorf("could not store sync item: %v", err)
 	}
 

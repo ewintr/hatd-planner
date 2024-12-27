@@ -2,36 +2,32 @@ package command
 
 import (
 	"fmt"
-
-	"go-mod.ewintr.nl/planner/plan/storage"
 )
 
-type List struct {
-	localIDRepo storage.LocalID
-	taskRepo    storage.Task
+type ListArgs struct {
 }
 
-func NewList(localIDRepo storage.LocalID, taskRepo storage.Task) Command {
-	return &List{
-		localIDRepo: localIDRepo,
-		taskRepo:    taskRepo,
-	}
+func NewListArgs() ListArgs {
+	return ListArgs{}
 }
 
-func (list *List) Execute(main []string, flags map[string]string) error {
+func (la ListArgs) Parse(main []string, flags map[string]string) (Command, error) {
 	if len(main) > 0 && main[0] != "list" {
-		return ErrWrongCommand
+		return nil, ErrWrongCommand
 	}
 
-	return list.do()
+	return &List{}, nil
 }
 
-func (list *List) do() error {
-	localIDs, err := list.localIDRepo.FindAll()
+type List struct {
+}
+
+func (list *List) Do(deps Dependencies) error {
+	localIDs, err := deps.LocalIDRepo.FindAll()
 	if err != nil {
 		return fmt.Errorf("could not get local ids: %v", err)
 	}
-	all, err := list.taskRepo.FindAll()
+	all, err := deps.TaskRepo.FindAll()
 	if err != nil {
 		return err
 	}
