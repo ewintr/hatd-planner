@@ -81,8 +81,11 @@ func (sync *Sync) do() error {
 			return fmt.Errorf("could not unmarshal task body: %v", err)
 		}
 		tsk := item.Task{
-			ID:       u.ID,
-			TaskBody: tskBody,
+			ID:        u.ID,
+			Date:      u.Date,
+			Recurrer:  u.Recurrer,
+			RecurNext: u.RecurNext,
+			TaskBody:  tskBody,
 		}
 		if err := sync.taskRepo.Store(tsk); err != nil {
 			return fmt.Errorf("could not store task: %v", err)
