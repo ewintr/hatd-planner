@@ -91,12 +91,6 @@ func (t Task) Valid() bool {
 	if t.Title == "" {
 		return false
 	}
-	if t.Date.IsZero() {
-		return false
-	}
-	if t.Duration.Seconds() < 1 {
-		return false
-	}
 
 	return true
 }

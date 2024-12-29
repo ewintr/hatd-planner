@@ -32,7 +32,11 @@ type CommandArgs interface {
 }
 
 type Command interface {
-	Do(deps Dependencies) error
+	Do(deps Dependencies) (CommandResult, error)
+}
+
+type CommandResult interface {
+	Render() string
 }
 
 type CLI struct {
@@ -44,6 +48,7 @@ func NewCLI(deps Dependencies) *CLI {
 	return &CLI{
 		deps: deps,
 		cmdArgs: []CommandArgs{
+			NewShowArgs(),
 			NewAddArgs(), NewDeleteArgs(), NewListArgs(),
 			NewSyncArgs(), NewUpdateArgs(),
 		},
@@ -51,17 +56,23 @@ func NewCLI(deps Dependencies) *CLI {
 }
 
 func (cli *CLI) Run(args []string) error {
-	main, flags := FindFields(args)
+	main, fields := FindFields(args)
 	for _, ca := range cli.cmdArgs {
-		cmd, err := ca.Parse(main, flags)
+		cmd, err := ca.Parse(main, fields)
 		switch {
 		case errors.Is(err, ErrWrongCommand):
 			continue
 		case err != nil:
 			return err
-		default:
-			return cmd.Do(cli.deps)
 		}
+
+		result, err := cmd.Do(cli.deps)
+		if err != nil {
+			return err
+		}
+		fmt.Println(result.Render())
+
+		return nil
 	}
 
 	return fmt.Errorf("could not find matching command")

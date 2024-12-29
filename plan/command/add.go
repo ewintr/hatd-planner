@@ -11,16 +11,16 @@ import (
 
 type AddArgs struct {
 	fieldTPL map[string][]string
-	task     item.Task
+	Task     item.Task
 }
 
 func NewAddArgs() AddArgs {
 	return AddArgs{
 		fieldTPL: map[string][]string{
-			"date":     []string{"d", "date", "on"},
-			"time":     []string{"t", "time", "at"},
-			"duration": []string{"dur", "duration", "for"},
-			"recurrer": []string{"rec", "recurrer"},
+			"date":     {"d", "date", "on"},
+			"time":     {"t", "time", "at"},
+			"duration": {"dur", "duration", "for"},
+			"recurrer": {"rec", "recurrer"},
 		},
 	}
 }
@@ -41,7 +41,7 @@ func (aa AddArgs) Parse(main []string, fields map[string]string) (Command, error
 	tsk := item.Task{
 		ID: uuid.New().String(),
 		TaskBody: item.TaskBody{
-			Title: strings.Join(main, ","),
+			Title: strings.Join(main, " "),
 		},
 	}
 
@@ -76,36 +76,43 @@ func (aa AddArgs) Parse(main []string, fields map[string]string) (Command, error
 	}
 
 	return &Add{
-		args: AddArgs{
-			task: tsk,
+		Args: AddArgs{
+			Task: tsk,
 		},
 	}, nil
 }
 
 type Add struct {
-	args AddArgs
+	Args AddArgs
 }
 
-func (a *Add) Do(deps Dependencies) error {
-	if err := deps.TaskRepo.Store(a.args.task); err != nil {
-		return fmt.Errorf("could not store event: %v", err)
+func (a *Add) Do(deps Dependencies) (CommandResult, error) {
+	if err := deps.TaskRepo.Store(a.Args.Task); err != nil {
+		return nil, fmt.Errorf("could not store event: %v", err)
 	}
 
 	localID, err := deps.LocalIDRepo.Next()
 	if err != nil {
-		return fmt.Errorf("could not create next local id: %v", err)
+		return nil, fmt.Errorf("could not create next local id: %v", err)
 	}
-	if err := deps.LocalIDRepo.Store(a.args.task.ID, localID); err != nil {
-		return fmt.Errorf("could not store local id: %v", err)
+	if err := deps.LocalIDRepo.Store(a.Args.Task.ID, localID); err != nil {
+		return nil, fmt.Errorf("could not store local id: %v", err)
 	}
 
-	it, err := a.args.task.Item()
+	it, err := a.Args.Task.Item()
 	if err != nil {
-		return fmt.Errorf("could not convert event to sync item: %v", err)
+		return nil, fmt.Errorf("could not convert event to sync item: %v", err)
 	}
 	if err := deps.SyncRepo.Store(it); err != nil {
-		return fmt.Errorf("could not store sync item: %v", err)
+		return nil, fmt.Errorf("could not store sync item: %v", err)
 	}
 
-	return nil
+	return nil, nil
+}
+
+type AddRender struct {
+}
+
+func (ar AddRender) Render() string {
+	return "stored task"
 }

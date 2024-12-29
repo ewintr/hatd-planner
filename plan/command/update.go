@@ -1,12 +1,14 @@
 package command
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
 
 	"go-mod.ewintr.nl/planner/item"
+	"go-mod.ewintr.nl/planner/plan/storage"
 )
 
 type UpdateArgs struct {
@@ -22,10 +24,10 @@ type UpdateArgs struct {
 func NewUpdateArgs() UpdateArgs {
 	return UpdateArgs{
 		fieldTPL: map[string][]string{
-			"date":     []string{"d", "date", "on"},
-			"time":     []string{"t", "time", "at"},
-			"duration": []string{"dur", "duration", "for"},
-			"recurrer": []string{"rec", "recurrer"},
+			"date":     {"d", "date", "on"},
+			"time":     {"t", "time", "at"},
+			"duration": {"dur", "duration", "for"},
+			"recurrer": {"rec", "recurrer"},
 		},
 	}
 }
@@ -83,24 +85,18 @@ type Update struct {
 	args UpdateArgs
 }
 
-func (u *Update) Do(deps Dependencies) error {
-	var id string
-	idMap, err := deps.LocalIDRepo.FindAll()
-	if err != nil {
-		return fmt.Errorf("could not get local ids: %v", err)
-	}
-	for tid, lid := range idMap {
-		if u.args.LocalID == lid {
-			id = tid
-		}
-	}
-	if id == "" {
-		return fmt.Errorf("could not find local id")
+func (u *Update) Do(deps Dependencies) (CommandResult, error) {
+	id, err := deps.LocalIDRepo.FindOne(u.args.LocalID)
+	switch {
+	case errors.Is(err, storage.ErrNotFound):
+		return nil, fmt.Errorf("could not find local id")
+	case err != nil:
+		return nil, err
 	}
 
-	tsk, err := deps.TaskRepo.Find(id)
+	tsk, err := deps.TaskRepo.FindOne(id)
 	if err != nil {
-		return fmt.Errorf("could not find task")
+		return nil, fmt.Errorf("could not find task")
 	}
 
 	if u.args.Title != "" {
@@ -121,20 +117,26 @@ func (u *Update) Do(deps Dependencies) error {
 	}
 
 	if !tsk.Valid() {
-		return fmt.Errorf("task is unvalid")
+		return nil, fmt.Errorf("task is unvalid")
 	}
 
 	if err := deps.TaskRepo.Store(tsk); err != nil {
-		return fmt.Errorf("could not store task: %v", err)
+		return nil, fmt.Errorf("could not store task: %v", err)
 	}
 
 	it, err := tsk.Item()
 	if err != nil {
-		return fmt.Errorf("could not convert task to sync item: %v", err)
+		return nil, fmt.Errorf("could not convert task to sync item: %v", err)
 	}
 	if err := deps.SyncRepo.Store(it); err != nil {
-		return fmt.Errorf("could not store sync item: %v", err)
+		return nil, fmt.Errorf("could not store sync item: %v", err)
 	}
 
-	return nil
+	return UpdateResult{}, nil
+}
+
+type UpdateResult struct{}
+
+func (ur UpdateResult) Render() string {
+	return "task updated"
 }

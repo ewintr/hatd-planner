@@ -54,6 +54,21 @@ func TestLocalID(t *testing.T) {
 		t.Errorf("exp 2, got %v", actLid)
 	}
 
+	t.Log("find by local id")
+	actID, actErr := repo.FindOne(1)
+	if actErr != nil {
+		t.Errorf("exp nil, got %v", actErr)
+	}
+	if actID != "test" {
+		t.Errorf("exp test, got %v", actID)
+	}
+
+	t.Log("unknown local id")
+	actID, actErr = repo.FindOne(2)
+	if !errors.Is(actErr, storage.ErrNotFound) {
+		t.Errorf("exp ErrNotFound, got %v", actErr)
+	}
+
 	actIDs, actErr = repo.FindAll()
 	if actErr != nil {
 		t.Errorf("exp nil, got %v", actErr)

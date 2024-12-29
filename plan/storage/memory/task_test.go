@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"go-mod.ewintr.nl/planner/item"
+	"go-mod.ewintr.nl/planner/plan/storage"
 )
 
 func TestTask(t *testing.T) {
@@ -12,7 +13,7 @@ func TestTask(t *testing.T) {
 	mem := NewTask()
 
 	t.Log("empty")
-	actTasks, actErr := mem.FindAll()
+	actTasks, actErr := mem.FindMany(storage.TaskListParams{})
 	if actErr != nil {
 		t.Errorf("exp nil, got %v", actErr)
 	}
@@ -22,7 +23,8 @@ func TestTask(t *testing.T) {
 
 	t.Log("store")
 	tsk1 := item.Task{
-		ID: "id-1",
+		ID:   "id-1",
+		Date: item.NewDate(2024, 12, 29),
 	}
 	if err := mem.Store(tsk1); err != nil {
 		t.Errorf("exp nil, got %v", err)
@@ -36,7 +38,7 @@ func TestTask(t *testing.T) {
 	}
 
 	t.Log("find one")
-	actTask, actErr := mem.Find(tsk1.ID)
+	actTask, actErr := mem.FindOne(tsk1.ID)
 	if actErr != nil {
 		t.Errorf("exp nil, got %v", actErr)
 	}
@@ -45,11 +47,23 @@ func TestTask(t *testing.T) {
 	}
 
 	t.Log("find all")
-	actTasks, actErr = mem.FindAll()
+	actTasks, actErr = mem.FindMany(storage.TaskListParams{})
 	if actErr != nil {
 		t.Errorf("exp nil, got %v", actErr)
 	}
 	if diff := item.TaskDiffs([]item.Task{tsk1, tsk2}, actTasks); diff != "" {
 		t.Errorf("(exp -, got +)\n%s", diff)
 	}
+
+	t.Log("fond some")
+	actTasks, actErr = mem.FindMany(storage.TaskListParams{
+		Date: item.NewDate(2024, 12, 29),
+	})
+	if actErr != nil {
+		t.Errorf("exp nil, got %v", actErr)
+	}
+	if diff := item.TaskDiffs([]item.Task{tsk1}, actTasks); diff != "" {
+		t.Errorf("(exp -, got +)\n%s", diff)
+	}
+
 }

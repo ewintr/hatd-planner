@@ -6,6 +6,7 @@ import (
 
 	"go-mod.ewintr.nl/planner/item"
 	"go-mod.ewintr.nl/planner/plan/command"
+	"go-mod.ewintr.nl/planner/plan/storage"
 	"go-mod.ewintr.nl/planner/plan/storage/memory"
 )
 
@@ -56,9 +57,12 @@ func TestAdd(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
+			// setup
 			taskRepo := memory.NewTask()
 			localIDRepo := memory.NewLocalID()
 			syncRepo := memory.NewSync()
+
+			// parse
 			cmd, actParseErr := command.NewAddArgs().Parse(tc.main, tc.fields)
 			if tc.expErr != (actParseErr != nil) {
 				t.Errorf("exp %v, got %v", tc.expErr, actParseErr)
@@ -66,7 +70,9 @@ func TestAdd(t *testing.T) {
 			if tc.expErr {
 				return
 			}
-			if err := cmd.Do(command.Dependencies{
+
+			// do
+			if _, err := cmd.Do(command.Dependencies{
 				TaskRepo:    taskRepo,
 				LocalIDRepo: localIDRepo,
 				SyncRepo:    syncRepo,
@@ -74,7 +80,8 @@ func TestAdd(t *testing.T) {
 				t.Errorf("exp nil, got %v", err)
 			}
 
-			actTasks, err := taskRepo.FindAll()
+			// check
+			actTasks, err := taskRepo.FindMany(storage.TaskListParams{})
 			if err != nil {
 				t.Errorf("exp nil, got %v", err)
 			}

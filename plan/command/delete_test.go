@@ -44,6 +44,7 @@ func TestDelete(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
+			// setup
 			taskRepo := memory.NewTask()
 			syncRepo := memory.NewSync()
 			if err := taskRepo.Store(e); err != nil {
@@ -54,6 +55,7 @@ func TestDelete(t *testing.T) {
 				t.Errorf("exp nil, got %v", err)
 			}
 
+			// parse
 			cmd, actParseErr := command.NewDeleteArgs().Parse(tc.main, tc.flags)
 			if tc.expParseErr != (actParseErr != nil) {
 				t.Errorf("exp %v, got %v", tc.expParseErr, actParseErr)
@@ -61,19 +63,22 @@ func TestDelete(t *testing.T) {
 			if tc.expParseErr {
 				return
 			}
-			actDoErr := cmd.Do(command.Dependencies{
+
+			// do
+			_, actDoErr := cmd.Do(command.Dependencies{
 				TaskRepo:    taskRepo,
 				LocalIDRepo: localIDRepo,
 				SyncRepo:    syncRepo,
-			}) != nil
-			if tc.expDoErr != actDoErr {
+			})
+			if tc.expDoErr != (actDoErr != nil) {
 				t.Errorf("exp false, got %v", actDoErr)
 			}
 			if tc.expDoErr {
 				return
 			}
 
-			_, repoErr := taskRepo.Find(e.ID)
+			// check
+			_, repoErr := taskRepo.FindOne(e.ID)
 			if !errors.Is(repoErr, storage.ErrNotFound) {
 				t.Errorf("exp %v, got %v", storage.ErrNotFound, repoErr)
 			}

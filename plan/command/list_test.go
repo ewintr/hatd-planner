@@ -30,15 +30,22 @@ func TestList(t *testing.T) {
 	for _, tc := range []struct {
 		name   string
 		main   []string
+		expRes bool
 		expErr bool
 	}{
 		{
-			name: "empty",
-			main: []string{},
+			name:   "empty",
+			main:   []string{},
+			expRes: true,
 		},
 		{
-			name: "list",
-			main: []string{"list"},
+			name:   "list",
+			main:   []string{"list"},
+			expRes: true,
+		},
+		{
+			name: "empty list",
+			main: []string{"list", "recur"},
 		},
 		{
 			name:   "wrong",
@@ -47,6 +54,7 @@ func TestList(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
+			// parse
 			cmd, actErr := command.NewListArgs().Parse(tc.main, nil)
 			if tc.expErr != (actErr != nil) {
 				t.Errorf("exp %v, got %v", tc.expErr, actErr)
@@ -54,11 +62,21 @@ func TestList(t *testing.T) {
 			if tc.expErr {
 				return
 			}
-			if err := cmd.Do(command.Dependencies{
+
+			// do
+			res, err := cmd.Do(command.Dependencies{
 				TaskRepo:    taskRepo,
 				LocalIDRepo: localRepo,
-			}); err != nil {
+			})
+			if err != nil {
 				t.Errorf("exp nil, got %v", err)
+			}
+
+			// check
+			listRes := res.(command.ListResult)
+			actRes := len(listRes.Tasks) > 0
+			if tc.expRes != actRes {
+				t.Errorf("exp %v, got %v", tc.expRes, actRes)
 			}
 		})
 	}

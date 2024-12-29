@@ -164,6 +164,7 @@ func TestUpdateExecute(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
+			// setup
 			taskRepo := memory.NewTask()
 			localIDRepo := memory.NewLocalID()
 			syncRepo := memory.NewSync()
@@ -182,6 +183,7 @@ func TestUpdateExecute(t *testing.T) {
 				t.Errorf("exp nil, ,got %v", err)
 			}
 
+			// parse
 			cmd, actErr := command.NewUpdateArgs().Parse(tc.main, tc.fields)
 			if tc.expParseErr != (actErr != nil) {
 				t.Errorf("exp %v, got %v", tc.expParseErr, actErr)
@@ -189,19 +191,22 @@ func TestUpdateExecute(t *testing.T) {
 			if tc.expParseErr {
 				return
 			}
-			actDoErr := cmd.Do(command.Dependencies{
+
+			// do
+			_, actDoErr := cmd.Do(command.Dependencies{
 				TaskRepo:    taskRepo,
 				LocalIDRepo: localIDRepo,
 				SyncRepo:    syncRepo,
-			}) != nil
-			if tc.expDoErr != actDoErr {
+			})
+			if tc.expDoErr != (actDoErr != nil) {
 				t.Errorf("exp %v, got %v", tc.expDoErr, actDoErr)
 			}
 			if tc.expDoErr {
 				return
 			}
 
-			actTask, err := taskRepo.Find(tskID)
+			// check
+			actTask, err := taskRepo.FindOne(tskID)
 			if err != nil {
 				t.Errorf("exp nil, got %v", err)
 			}
