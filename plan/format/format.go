@@ -1,6 +1,7 @@
 package format
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"strconv"
@@ -57,19 +58,19 @@ func Table(data [][]string) string {
 
 	// print the rows
 	var output string
-	for _, row := range data {
-		// if r%3 == 0 {
-		// 	output += fmt.Sprintf("%s", "\x1b[48;5;237m")
-		// }
+	for r, row := range data {
+		if r%3 == 0 {
+			output += fmt.Sprintf("%s", "\x1b[48;5;237m")
+		}
 		for c, col := range row {
 			output += col
 			if c != len(row)-1 {
 				output += " "
 			}
 		}
-		// if r%3 == 0 {
-		// 	output += fmt.Sprintf("%s", "\x1b[49m")
-		// }
+		if r%3 == 0 {
+			output += fmt.Sprintf("%s", "\x1b[49m")
+		}
 		output += "\n"
 	}
 
