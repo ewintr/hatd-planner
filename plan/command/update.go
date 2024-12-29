@@ -1,12 +1,14 @@
 package command
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
 
 	"go-mod.ewintr.nl/planner/item"
+	"go-mod.ewintr.nl/planner/plan/storage"
 )
 
 type UpdateArgs struct {
@@ -84,18 +86,12 @@ type Update struct {
 }
 
 func (u *Update) Do(deps Dependencies) ([][]string, error) {
-	var id string
-	idMap, err := deps.LocalIDRepo.FindAll()
-	if err != nil {
-		return nil, fmt.Errorf("could not get local ids: %v", err)
-	}
-	for tid, lid := range idMap {
-		if u.args.LocalID == lid {
-			id = tid
-		}
-	}
-	if id == "" {
+	id, err := deps.LocalIDRepo.FindOne(u.args.LocalID)
+	switch {
+	case errors.Is(err, storage.ErrNotFound):
 		return nil, fmt.Errorf("could not find local id")
+	case err != nil:
+		return nil, err
 	}
 
 	tsk, err := deps.TaskRepo.Find(id)
