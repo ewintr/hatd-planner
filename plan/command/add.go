@@ -86,26 +86,26 @@ type Add struct {
 	args AddArgs
 }
 
-func (a *Add) Do(deps Dependencies) error {
+func (a *Add) Do(deps Dependencies) ([][]string, error) {
 	if err := deps.TaskRepo.Store(a.args.task); err != nil {
-		return fmt.Errorf("could not store event: %v", err)
+		return nil, fmt.Errorf("could not store event: %v", err)
 	}
 
 	localID, err := deps.LocalIDRepo.Next()
 	if err != nil {
-		return fmt.Errorf("could not create next local id: %v", err)
+		return nil, fmt.Errorf("could not create next local id: %v", err)
 	}
 	if err := deps.LocalIDRepo.Store(a.args.task.ID, localID); err != nil {
-		return fmt.Errorf("could not store local id: %v", err)
+		return nil, fmt.Errorf("could not store local id: %v", err)
 	}
 
 	it, err := a.args.task.Item()
 	if err != nil {
-		return fmt.Errorf("could not convert event to sync item: %v", err)
+		return nil, fmt.Errorf("could not convert event to sync item: %v", err)
 	}
 	if err := deps.SyncRepo.Store(it); err != nil {
-		return fmt.Errorf("could not store sync item: %v", err)
+		return nil, fmt.Errorf("could not store sync item: %v", err)
 	}
 
-	return nil
+	return nil, nil
 }

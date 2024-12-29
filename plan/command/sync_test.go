@@ -80,7 +80,7 @@ func TestSyncSend(t *testing.T) {
 			if err != nil {
 				t.Errorf("exp nil, got %v", err)
 			}
-			if err := cmd.Do(command.Dependencies{
+			if _, err := cmd.Do(command.Dependencies{
 				TaskRepo:    taskRepo,
 				LocalIDRepo: localIDRepo,
 				SyncRepo:    syncRepo,
@@ -206,7 +206,7 @@ func TestSyncReceive(t *testing.T) {
 			if err != nil {
 				t.Errorf("exp nil, got %v", err)
 			}
-			if err := cmd.Do(command.Dependencies{
+			if _, err := cmd.Do(command.Dependencies{
 				TaskRepo:    taskRepo,
 				LocalIDRepo: localIDRepo,
 				SyncRepo:    syncRepo,

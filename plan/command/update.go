@@ -83,11 +83,11 @@ type Update struct {
 	args UpdateArgs
 }
 
-func (u *Update) Do(deps Dependencies) error {
+func (u *Update) Do(deps Dependencies) ([][]string, error) {
 	var id string
 	idMap, err := deps.LocalIDRepo.FindAll()
 	if err != nil {
-		return fmt.Errorf("could not get local ids: %v", err)
+		return nil, fmt.Errorf("could not get local ids: %v", err)
 	}
 	for tid, lid := range idMap {
 		if u.args.LocalID == lid {
@@ -95,12 +95,12 @@ func (u *Update) Do(deps Dependencies) error {
 		}
 	}
 	if id == "" {
-		return fmt.Errorf("could not find local id")
+		return nil, fmt.Errorf("could not find local id")
 	}
 
 	tsk, err := deps.TaskRepo.Find(id)
 	if err != nil {
-		return fmt.Errorf("could not find task")
+		return nil, fmt.Errorf("could not find task")
 	}
 
 	if u.args.Title != "" {
@@ -121,20 +121,20 @@ func (u *Update) Do(deps Dependencies) error {
 	}
 
 	if !tsk.Valid() {
-		return fmt.Errorf("task is unvalid")
+		return nil, fmt.Errorf("task is unvalid")
 	}
 
 	if err := deps.TaskRepo.Store(tsk); err != nil {
-		return fmt.Errorf("could not store task: %v", err)
+		return nil, fmt.Errorf("could not store task: %v", err)
 	}
 
 	it, err := tsk.Item()
 	if err != nil {
-		return fmt.Errorf("could not convert task to sync item: %v", err)
+		return nil, fmt.Errorf("could not convert task to sync item: %v", err)
 	}
 	if err := deps.SyncRepo.Store(it); err != nil {
-		return fmt.Errorf("could not store sync item: %v", err)
+		return nil, fmt.Errorf("could not store sync item: %v", err)
 	}
 
-	return nil
+	return nil, nil
 }

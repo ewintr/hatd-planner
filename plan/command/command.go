@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strings"
 
+	"go-mod.ewintr.nl/planner/plan/format"
 	"go-mod.ewintr.nl/planner/plan/storage"
 	"go-mod.ewintr.nl/planner/sync/client"
 )
@@ -32,7 +33,7 @@ type CommandArgs interface {
 }
 
 type Command interface {
-	Do(deps Dependencies) error
+	Do(deps Dependencies) ([][]string, error)
 }
 
 type CLI struct {
@@ -52,17 +53,29 @@ func NewCLI(deps Dependencies) *CLI {
 }
 
 func (cli *CLI) Run(args []string) error {
-	main, flags := FindFields(args)
+	main, fields := FindFields(args)
 	for _, ca := range cli.cmdArgs {
-		cmd, err := ca.Parse(main, flags)
+		cmd, err := ca.Parse(main, fields)
 		switch {
 		case errors.Is(err, ErrWrongCommand):
 			continue
 		case err != nil:
 			return err
-		default:
-			return cmd.Do(cli.deps)
 		}
+
+		data, err := cmd.Do(cli.deps)
+		if err != nil {
+			return err
+		}
+
+		switch {
+		case len(data) == 0:
+		case len(data) == 1 && len(data[0]) == 1:
+			fmt.Println(data[0][0])
+		default:
+			fmt.Printf("\n%s\n", format.Table(data))
+		}
+		return nil
 	}
 
 	return fmt.Errorf("could not find matching command")

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strconv"
 
-	"go-mod.ewintr.nl/planner/plan/format"
 	"go-mod.ewintr.nl/planner/plan/storage"
 )
 
@@ -37,18 +36,18 @@ type Show struct {
 	args ShowArgs
 }
 
-func (s *Show) Do(deps Dependencies) error {
+func (s *Show) Do(deps Dependencies) ([][]string, error) {
 	id, err := deps.LocalIDRepo.FindOne(s.args.localID)
 	switch {
 	case errors.Is(err, storage.ErrNotFound):
-		return fmt.Errorf("could not find local id")
+		return nil, fmt.Errorf("could not find local id")
 	case err != nil:
-		return err
+		return nil, err
 	}
 
 	tsk, err := deps.TaskRepo.Find(id)
 	if err != nil {
-		return fmt.Errorf("could not find task")
+		return nil, fmt.Errorf("could not find task")
 	}
 
 	var recurStr string
@@ -64,7 +63,6 @@ func (s *Show) Do(deps Dependencies) error {
 		{"recur", recurStr},
 		// {"id", tsk.ID},
 	}
-	fmt.Printf("\n%s\n", format.Table(data))
 
-	return nil
+	return data, nil
 }

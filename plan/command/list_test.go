@@ -54,7 +54,7 @@ func TestList(t *testing.T) {
 			if tc.expErr {
 				return
 			}
-			if err := cmd.Do(command.Dependencies{
+			if _, err := cmd.Do(command.Dependencies{
 				TaskRepo:    taskRepo,
 				LocalIDRepo: localRepo,
 			}); err != nil {

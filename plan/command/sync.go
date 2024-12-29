@@ -25,37 +25,37 @@ func (sa SyncArgs) Parse(main []string, flags map[string]string) (Command, error
 
 type Sync struct{}
 
-func (s *Sync) Do(deps Dependencies) error {
+func (s *Sync) Do(deps Dependencies) ([][]string, error) {
 	// local new and updated
 	sendItems, err := deps.SyncRepo.FindAll()
 	if err != nil {
-		return fmt.Errorf("could not get updated items: %v", err)
+		return nil, fmt.Errorf("could not get updated items: %v", err)
 	}
 	if err := deps.SyncClient.Update(sendItems); err != nil {
-		return fmt.Errorf("could not send updated items: %v", err)
+		return nil, fmt.Errorf("could not send updated items: %v", err)
 	}
 	if err := deps.SyncRepo.DeleteAll(); err != nil {
-		return fmt.Errorf("could not clear updated items: %v", err)
+		return nil, fmt.Errorf("could not clear updated items: %v", err)
 	}
 
 	// get new/updated items
 	ts, err := deps.SyncRepo.LastUpdate()
 	if err != nil {
-		return fmt.Errorf("could not find timestamp of last update: %v", err)
+		return nil, fmt.Errorf("could not find timestamp of last update: %v", err)
 	}
 	recItems, err := deps.SyncClient.Updated([]item.Kind{item.KindTask}, ts)
 	if err != nil {
-		return fmt.Errorf("could not receive updates: %v", err)
+		return nil, fmt.Errorf("could not receive updates: %v", err)
 	}
 
 	updated := make([]item.Item, 0)
 	for _, ri := range recItems {
 		if ri.Deleted {
 			if err := deps.LocalIDRepo.Delete(ri.ID); err != nil && !errors.Is(err, storage.ErrNotFound) {
-				return fmt.Errorf("could not delete local id: %v", err)
+				return nil, fmt.Errorf("could not delete local id: %v", err)
 			}
 			if err := deps.TaskRepo.Delete(ri.ID); err != nil && !errors.Is(err, storage.ErrNotFound) {
-				return fmt.Errorf("could not delete task: %v", err)
+				return nil, fmt.Errorf("could not delete task: %v", err)
 			}
 			continue
 		}
@@ -64,12 +64,12 @@ func (s *Sync) Do(deps Dependencies) error {
 
 	lidMap, err := deps.LocalIDRepo.FindAll()
 	if err != nil {
-		return fmt.Errorf("could not get local ids: %v", err)
+		return nil, fmt.Errorf("could not get local ids: %v", err)
 	}
 	for _, u := range updated {
 		var tskBody item.TaskBody
 		if err := json.Unmarshal([]byte(u.Body), &tskBody); err != nil {
-			return fmt.Errorf("could not unmarshal task body: %v", err)
+			return nil, fmt.Errorf("could not unmarshal task body: %v", err)
 		}
 		tsk := item.Task{
 			ID:        u.ID,
@@ -79,20 +79,20 @@ func (s *Sync) Do(deps Dependencies) error {
 			TaskBody:  tskBody,
 		}
 		if err := deps.TaskRepo.Store(tsk); err != nil {
-			return fmt.Errorf("could not store task: %v", err)
+			return nil, fmt.Errorf("could not store task: %v", err)
 		}
 		lid, ok := lidMap[u.ID]
 		if !ok {
 			lid, err = deps.LocalIDRepo.Next()
 			if err != nil {
-				return fmt.Errorf("could not get next local id: %v", err)
+				return nil, fmt.Errorf("could not get next local id: %v", err)
 			}
 
 			if err := deps.LocalIDRepo.Store(u.ID, lid); err != nil {
-				return fmt.Errorf("could not store local id: %v", err)
+				return nil, fmt.Errorf("could not store local id: %v", err)
 			}
 		}
 	}
 
-	return nil
+	return nil, nil
 }
