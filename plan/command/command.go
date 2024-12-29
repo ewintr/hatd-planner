@@ -44,6 +44,7 @@ func NewCLI(deps Dependencies) *CLI {
 	return &CLI{
 		deps: deps,
 		cmdArgs: []CommandArgs{
+			NewShowArgs(),
 			NewAddArgs(), NewDeleteArgs(), NewListArgs(),
 			NewSyncArgs(), NewUpdateArgs(),
 		},

@@ -13,6 +13,7 @@ var (
 )
 
 type LocalID interface {
+	FindOne(lid int) (string, error)
 	FindAll() (map[string]int, error)
 	FindOrNext(id string) (int, error)
 	Next() (int, error)

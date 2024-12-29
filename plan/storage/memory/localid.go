@@ -18,6 +18,19 @@ func NewLocalID() *LocalID {
 	}
 }
 
+func (ml *LocalID) FindOne(lid int) (string, error) {
+	ml.mutex.RLock()
+	defer ml.mutex.RUnlock()
+
+	for id, l := range ml.ids {
+		if lid == l {
+			return id, nil
+		}
+	}
+
+	return "", storage.ErrNotFound
+}
+
 func (ml *LocalID) FindAll() (map[string]int, error) {
 	ml.mutex.RLock()
 	defer ml.mutex.RUnlock()

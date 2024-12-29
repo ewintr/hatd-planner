@@ -2,6 +2,7 @@ package sqlite
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 
 	"go-mod.ewintr.nl/planner/plan/storage"
@@ -9,6 +10,23 @@ import (
 
 type LocalID struct {
 	db *sql.DB
+}
+
+func (l *LocalID) FindOne(lid int) (string, error) {
+	var id string
+	err := l.db.QueryRow(`
+SELECT id
+FROM localids
+WHERE local_id = ?
+`, lid).Scan(&id)
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
+		return "", storage.ErrNotFound
+	case err != nil:
+		return "", fmt.Errorf("%w: %v", ErrSqliteFailure, err)
+	}
+
+	return id, nil
 }
 
 func (l *LocalID) FindAll() (map[string]int, error) {
