@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strconv"
 
+	"go-mod.ewintr.nl/planner/item"
+	"go-mod.ewintr.nl/planner/plan/format"
 	"go-mod.ewintr.nl/planner/plan/storage"
 )
 
@@ -36,7 +38,7 @@ type Show struct {
 	args ShowArgs
 }
 
-func (s *Show) Do(deps Dependencies) ([][]string, error) {
+func (s *Show) Do(deps Dependencies) (CommandResult, error) {
 	id, err := deps.LocalIDRepo.FindOne(s.args.localID)
 	switch {
 	case errors.Is(err, storage.ErrNotFound):
@@ -45,24 +47,37 @@ func (s *Show) Do(deps Dependencies) ([][]string, error) {
 		return nil, err
 	}
 
-	tsk, err := deps.TaskRepo.Find(id)
+	tsk, err := deps.TaskRepo.FindOne(id)
 	if err != nil {
 		return nil, fmt.Errorf("could not find task")
 	}
 
+	return ShowResult{
+		LocalID: s.args.localID,
+		Task:    tsk,
+	}, nil
+}
+
+type ShowResult struct {
+	LocalID int
+	Task    item.Task
+}
+
+func (sr ShowResult) Render() string {
+
 	var recurStr string
-	if tsk.Recurrer != nil {
-		recurStr = tsk.Recurrer.String()
+	if sr.Task.Recurrer != nil {
+		recurStr = sr.Task.Recurrer.String()
 	}
 	data := [][]string{
-		{"title", tsk.Title},
-		{"local id", fmt.Sprintf("%d", s.args.localID)},
-		{"date", tsk.Date.String()},
-		{"time", tsk.Time.String()},
-		{"duration", tsk.Duration.String()},
+		{"title", sr.Task.Title},
+		{"local id", fmt.Sprintf("%d", sr.LocalID)},
+		{"date", sr.Task.Date.String()},
+		{"time", sr.Task.Time.String()},
+		{"duration", sr.Task.Duration.String()},
 		{"recur", recurStr},
-		// {"id", tsk.ID},
+		// {"id", s.Task.ID},
 	}
 
-	return data, nil
+	return fmt.Sprintf("\n%s\n", format.Table(data))
 }

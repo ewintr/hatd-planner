@@ -24,24 +24,24 @@ func (da DeleteArgs) Parse(main []string, flags map[string]string) (Command, err
 	}
 
 	return &Delete{
-		args: DeleteArgs{
+		Args: DeleteArgs{
 			LocalID: localID,
 		},
 	}, nil
 }
 
 type Delete struct {
-	args DeleteArgs
+	Args DeleteArgs
 }
 
-func (del *Delete) Do(deps Dependencies) ([][]string, error) {
+func (del *Delete) Do(deps Dependencies) (CommandResult, error) {
 	var id string
 	idMap, err := deps.LocalIDRepo.FindAll()
 	if err != nil {
 		return nil, fmt.Errorf("could not get local ids: %v", err)
 	}
 	for tskID, lid := range idMap {
-		if del.args.LocalID == lid {
+		if del.Args.LocalID == lid {
 			id = tskID
 		}
 	}
@@ -49,7 +49,7 @@ func (del *Delete) Do(deps Dependencies) ([][]string, error) {
 		return nil, fmt.Errorf("could not find local id")
 	}
 
-	tsk, err := deps.TaskRepo.Find(id)
+	tsk, err := deps.TaskRepo.FindOne(id)
 	if err != nil {
 		return nil, fmt.Errorf("could not get task: %v", err)
 	}
@@ -72,4 +72,10 @@ func (del *Delete) Do(deps Dependencies) ([][]string, error) {
 	}
 
 	return nil, nil
+}
+
+type DeleteResult struct{}
+
+func (dr DeleteResult) Render() string {
+	return "task deleted"
 }

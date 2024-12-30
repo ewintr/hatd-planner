@@ -3,10 +3,60 @@ package storage_test
 import (
 	"testing"
 
+	"go-mod.ewintr.nl/planner/item"
 	"go-mod.ewintr.nl/planner/plan/storage"
 )
 
+func TestMatch(t *testing.T) {
+	t.Parallel()
+
+	tskMatch := item.Task{
+		ID:       "id",
+		Date:     item.NewDate(2024, 12, 29),
+		Recurrer: item.NewRecurrer("2024-12-29, daily"),
+		TaskBody: item.TaskBody{
+			Title: "name",
+		},
+	}
+	tskNotMatch := item.Task{
+		ID:   "id",
+		Date: item.NewDate(2024, 12, 28),
+		TaskBody: item.TaskBody{
+			Title: "name",
+		},
+	}
+
+	for _, tc := range []struct {
+		name   string
+		params storage.TaskListParams
+	}{
+		{
+			name: "date",
+			params: storage.TaskListParams{
+				Date: item.NewDate(2024, 12, 29),
+			},
+		},
+		{
+			name: "recurrer",
+			params: storage.TaskListParams{
+				Recurrer: true,
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if !storage.Match(tskMatch, tc.params) {
+				t.Errorf("exp tsk to match")
+			}
+			if storage.Match(tskNotMatch, tc.params) {
+				t.Errorf("exp tsk to not match")
+			}
+		})
+	}
+}
+
 func TestNextLocalId(t *testing.T) {
+	t.Parallel()
+
 	for _, tc := range []struct {
 		name string
 		used []int

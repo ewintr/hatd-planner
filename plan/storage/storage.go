@@ -28,11 +28,33 @@ type Sync interface {
 	LastUpdate() (time.Time, error)
 }
 
+type TaskListParams struct {
+	Recurrer      bool
+	Date          item.Date
+	IncludeBefore bool
+}
+
 type Task interface {
 	Store(task item.Task) error
-	Find(id string) (item.Task, error)
-	FindAll() ([]item.Task, error)
+	FindOne(id string) (item.Task, error)
+	FindMany(params TaskListParams) ([]item.Task, error)
 	Delete(id string) error
+}
+
+func Match(tsk item.Task, params TaskListParams) bool {
+	if params.Recurrer && tsk.Recurrer == nil {
+		return false
+	}
+	if !params.Date.IsZero() {
+		if !params.IncludeBefore && !params.Date.Equal(tsk.Date) {
+			return false
+		}
+		if params.IncludeBefore && tsk.Date.After(params.Date) {
+			return false
+		}
+	}
+
+	return true
 }
 
 func NextLocalID(used []int) int {

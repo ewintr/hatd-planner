@@ -24,10 +24,10 @@ type UpdateArgs struct {
 func NewUpdateArgs() UpdateArgs {
 	return UpdateArgs{
 		fieldTPL: map[string][]string{
-			"date":     []string{"d", "date", "on"},
-			"time":     []string{"t", "time", "at"},
-			"duration": []string{"dur", "duration", "for"},
-			"recurrer": []string{"rec", "recurrer"},
+			"date":     {"d", "date", "on"},
+			"time":     {"t", "time", "at"},
+			"duration": {"dur", "duration", "for"},
+			"recurrer": {"rec", "recurrer"},
 		},
 	}
 }
@@ -85,7 +85,7 @@ type Update struct {
 	args UpdateArgs
 }
 
-func (u *Update) Do(deps Dependencies) ([][]string, error) {
+func (u *Update) Do(deps Dependencies) (CommandResult, error) {
 	id, err := deps.LocalIDRepo.FindOne(u.args.LocalID)
 	switch {
 	case errors.Is(err, storage.ErrNotFound):
@@ -94,7 +94,7 @@ func (u *Update) Do(deps Dependencies) ([][]string, error) {
 		return nil, err
 	}
 
-	tsk, err := deps.TaskRepo.Find(id)
+	tsk, err := deps.TaskRepo.FindOne(id)
 	if err != nil {
 		return nil, fmt.Errorf("could not find task")
 	}
@@ -132,5 +132,11 @@ func (u *Update) Do(deps Dependencies) ([][]string, error) {
 		return nil, fmt.Errorf("could not store sync item: %v", err)
 	}
 
-	return nil, nil
+	return UpdateResult{}, nil
+}
+
+type UpdateResult struct{}
+
+func (ur UpdateResult) Render() string {
+	return "task updated"
 }

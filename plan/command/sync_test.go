@@ -7,6 +7,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"go-mod.ewintr.nl/planner/item"
 	"go-mod.ewintr.nl/planner/plan/command"
+	"go-mod.ewintr.nl/planner/plan/storage"
 	"go-mod.ewintr.nl/planner/plan/storage/memory"
 	"go-mod.ewintr.nl/planner/sync/client"
 )
@@ -216,7 +217,7 @@ func TestSyncReceive(t *testing.T) {
 			}
 
 			// check result
-			actTasks, err := taskRepo.FindAll()
+			actTasks, err := taskRepo.FindMany(storage.TaskListParams{})
 			if err != nil {
 				t.Errorf("exp nil, got %v", err)
 			}

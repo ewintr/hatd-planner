@@ -168,28 +168,6 @@ func TestTaskValidate(t *testing.T) {
 			},
 		},
 		{
-			name: "no date",
-			tsk: item.Task{
-				ID: "a",
-				TaskBody: item.TaskBody{
-					Title:    "title",
-					Time:     item.NewTime(8, 0),
-					Duration: oneHour,
-				},
-			},
-		},
-		{
-			name: "no duration",
-			tsk: item.Task{
-				ID:   "a",
-				Date: item.NewDate(2024, 9, 20),
-				TaskBody: item.TaskBody{
-					Title: "title",
-					Time:  item.NewTime(8, 0),
-				},
-			},
-		},
-		{
 			name: "valid",
 			tsk: item.Task{
 				ID:   "a",

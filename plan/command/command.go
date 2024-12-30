@@ -6,7 +6,6 @@ import (
 	"slices"
 	"strings"
 
-	"go-mod.ewintr.nl/planner/plan/format"
 	"go-mod.ewintr.nl/planner/plan/storage"
 	"go-mod.ewintr.nl/planner/sync/client"
 )
@@ -33,7 +32,11 @@ type CommandArgs interface {
 }
 
 type Command interface {
-	Do(deps Dependencies) ([][]string, error)
+	Do(deps Dependencies) (CommandResult, error)
+}
+
+type CommandResult interface {
+	Render() string
 }
 
 type CLI struct {
@@ -63,18 +66,12 @@ func (cli *CLI) Run(args []string) error {
 			return err
 		}
 
-		data, err := cmd.Do(cli.deps)
+		result, err := cmd.Do(cli.deps)
 		if err != nil {
 			return err
 		}
+		fmt.Println(result.Render())
 
-		switch {
-		case len(data) == 0:
-		case len(data) == 1 && len(data[0]) == 1:
-			fmt.Println(data[0][0])
-		default:
-			fmt.Printf("\n%s\n", format.Table(data))
-		}
 		return nil
 	}
 

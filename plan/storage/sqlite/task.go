@@ -38,7 +38,7 @@ recurrer=?
 	return nil
 }
 
-func (t *SqliteTask) Find(id string) (item.Task, error) {
+func (t *SqliteTask) FindOne(id string) (item.Task, error) {
 	var tsk item.Task
 	var dateStr, timeStr, recurStr, durStr string
 	err := t.db.QueryRow(`
@@ -63,14 +63,35 @@ WHERE id = ?`, id).Scan(&tsk.ID, &tsk.Title, &dateStr, &timeStr, &durStr, &recur
 	return tsk, nil
 }
 
-func (t *SqliteTask) FindAll() ([]item.Task, error) {
-	rows, err := t.db.Query(`
-SELECT id, title, date, time, duration, recurrer
-FROM tasks`)
+func (t *SqliteTask) FindMany(params storage.TaskListParams) ([]item.Task, error) {
+	query := `SELECT id, title, date, time, duration, recurrer FROM tasks`
+	args := []interface{}{}
+	where := []string{}
+
+	if params.Recurrer {
+		where = append(where, `recurrer IS NOT NULL AND recurrer != ''`)
+	}
+	if !params.Date.IsZero() && !params.IncludeBefore {
+		where = append(where, `date = ?`)
+		args = append(args, params.Date.String())
+	}
+	if !params.Date.IsZero() && params.IncludeBefore {
+		where = append(where, `date <= ?`)
+		args = append(args, params.Date.String())
+	}
+
+	if len(where) > 0 {
+		query += ` WHERE ` + where[0]
+		for _, w := range where[1:] {
+			query += ` AND ` + w
+		}
+	}
+
+	rows, err := t.db.Query(query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrSqliteFailure, err)
 	}
-	result := make([]item.Task, 0)
+	tasks := make([]item.Task, 0)
 	defer rows.Close()
 	for rows.Next() {
 		var tsk item.Task
@@ -87,10 +108,10 @@ FROM tasks`)
 		tsk.Duration = dur
 		tsk.Recurrer = item.NewRecurrer(recurStr)
 
-		result = append(result, tsk)
+		tasks = append(tasks, tsk)
 	}
 
-	return result, nil
+	return tasks, nil
 }
 
 func (s *SqliteTask) Delete(id string) error {

@@ -19,7 +19,7 @@ func NewTask() *Task {
 	}
 }
 
-func (t *Task) Find(id string) (item.Task, error) {
+func (t *Task) FindOne(id string) (item.Task, error) {
 	t.mutex.RLock()
 	defer t.mutex.RUnlock()
 
@@ -30,13 +30,15 @@ func (t *Task) Find(id string) (item.Task, error) {
 	return task, nil
 }
 
-func (t *Task) FindAll() ([]item.Task, error) {
+func (t *Task) FindMany(params storage.TaskListParams) ([]item.Task, error) {
 	t.mutex.RLock()
 	defer t.mutex.RUnlock()
 
 	tasks := make([]item.Task, 0, len(t.tasks))
 	for _, tsk := range t.tasks {
-		tasks = append(tasks, tsk)
+		if storage.Match(tsk, params) {
+			tasks = append(tasks, tsk)
+		}
 	}
 	sort.Slice(tasks, func(i, j int) bool {
 		return tasks[i].ID < tasks[j].ID

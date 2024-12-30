@@ -25,7 +25,7 @@ func (sa SyncArgs) Parse(main []string, flags map[string]string) (Command, error
 
 type Sync struct{}
 
-func (s *Sync) Do(deps Dependencies) ([][]string, error) {
+func (s *Sync) Do(deps Dependencies) (CommandResult, error) {
 	// local new and updated
 	sendItems, err := deps.SyncRepo.FindAll()
 	if err != nil {
@@ -94,5 +94,9 @@ func (s *Sync) Do(deps Dependencies) ([][]string, error) {
 		}
 	}
 
-	return nil, nil
+	return SyncResult{}, nil
 }
+
+type SyncResult struct{}
+
+func (sr SyncResult) Render() string { return "tasks synced" }
