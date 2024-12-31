@@ -40,4 +40,5 @@ var migrations = []string{
     SELECT id, local_id FROM localids_backup`,
 	`DROP TABLE localids_backup`,
 	`ALTER TABLE items ADD COLUMN date TEXT NOT NULL DEFAULT ''`,
+	`ALTER TABLE tasks ADD COLUMN project TEXT NOT NULL DEFAULT ''`,
 }

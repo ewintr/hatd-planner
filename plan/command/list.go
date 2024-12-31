@@ -105,9 +105,15 @@ type ListResult struct {
 }
 
 func (lr ListResult) Render() string {
-	data := [][]string{{"id", "date", "dur", "title"}}
+	data := [][]string{{"id", "project", "date", "dur", "title"}}
 	for _, tl := range lr.Tasks {
-		data = append(data, []string{fmt.Sprintf("%d", tl.LocalID), tl.Task.Date.String(), tl.Task.Duration.String(), tl.Task.Title})
+		data = append(data, []string{
+			fmt.Sprintf("%d", tl.LocalID),
+			tl.Task.Project,
+			tl.Task.Date.String(),
+			tl.Task.Duration.String(),
+			tl.Task.Title,
+		})
 	}
 
 	return fmt.Sprintf("\n%s\n", format.Table(data))

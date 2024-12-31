@@ -15,6 +15,7 @@ type UpdateArgs struct {
 	fieldTPL map[string][]string
 	LocalID  int
 	Title    string
+	Project  string
 	Date     item.Date
 	Time     item.Time
 	Duration time.Duration
@@ -24,6 +25,7 @@ type UpdateArgs struct {
 func NewUpdateArgs() UpdateArgs {
 	return UpdateArgs{
 		fieldTPL: map[string][]string{
+			"project":  {"p", "project"},
 			"date":     {"d", "date", "on"},
 			"time":     {"t", "time", "at"},
 			"duration": {"dur", "duration", "for"},
@@ -49,6 +51,9 @@ func (ua UpdateArgs) Parse(main []string, fields map[string]string) (Command, er
 		Title:   strings.Join(main[2:], " "),
 	}
 
+	if val, ok := fields["project"]; ok {
+		args.Project = val
+	}
 	if val, ok := fields["date"]; ok {
 		d := item.NewDateFromString(val)
 		if d.IsZero() {
@@ -101,6 +106,9 @@ func (u *Update) Do(deps Dependencies) (CommandResult, error) {
 
 	if u.args.Title != "" {
 		tsk.Title = u.args.Title
+	}
+	if u.args.Project != "" {
+		tsk.Project = u.args.Project
 	}
 	if !u.args.Date.IsZero() {
 		tsk.Date = u.args.Date

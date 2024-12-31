@@ -20,19 +20,20 @@ func (t *SqliteTask) Store(tsk item.Task) error {
 	}
 	if _, err := t.db.Exec(`
 INSERT INTO tasks
-(id, title, date, time, duration, recurrer)
+(id, title, project, date, time, duration, recurrer)
 VALUES
-(?, ?, ?, ?, ?, ?)
+(?, ?, ?, ?, ?, ?, ?)
 ON CONFLICT(id) DO UPDATE
 SET
 title=?,
+project=?,
 date=?,
 time=?,
 duration=?,
 recurrer=?
 `,
-		tsk.ID, tsk.Title, tsk.Date.String(), tsk.Time.String(), tsk.Duration.String(), recurStr,
-		tsk.Title, tsk.Date.String(), tsk.Time.String(), tsk.Duration.String(), recurStr); err != nil {
+		tsk.ID, tsk.Title, tsk.Project, tsk.Date.String(), tsk.Time.String(), tsk.Duration.String(), recurStr,
+		tsk.Title, tsk.Project, tsk.Date.String(), tsk.Time.String(), tsk.Duration.String(), recurStr); err != nil {
 		return fmt.Errorf("%w: %v", ErrSqliteFailure, err)
 	}
 	return nil
@@ -42,9 +43,9 @@ func (t *SqliteTask) FindOne(id string) (item.Task, error) {
 	var tsk item.Task
 	var dateStr, timeStr, recurStr, durStr string
 	err := t.db.QueryRow(`
-SELECT id, title, date, time, duration, recurrer
+SELECT id, title, project, date, time, duration, recurrer
 FROM tasks
-WHERE id = ?`, id).Scan(&tsk.ID, &tsk.Title, &dateStr, &timeStr, &durStr, &recurStr)
+WHERE id = ?`, id).Scan(&tsk.ID, &tsk.Title, &tsk.Project, &dateStr, &timeStr, &durStr, &recurStr)
 	switch {
 	case err == sql.ErrNoRows:
 		return item.Task{}, fmt.Errorf("event not found: %w", err)
@@ -64,7 +65,7 @@ WHERE id = ?`, id).Scan(&tsk.ID, &tsk.Title, &dateStr, &timeStr, &durStr, &recur
 }
 
 func (t *SqliteTask) FindMany(params storage.TaskListParams) ([]item.Task, error) {
-	query := `SELECT id, title, date, time, duration, recurrer FROM tasks`
+	query := `SELECT id, title, project, date, time, duration, recurrer FROM tasks`
 	args := []interface{}{}
 	where := []string{}
 
@@ -96,7 +97,7 @@ func (t *SqliteTask) FindMany(params storage.TaskListParams) ([]item.Task, error
 	for rows.Next() {
 		var tsk item.Task
 		var dateStr, timeStr, recurStr, durStr string
-		if err := rows.Scan(&tsk.ID, &tsk.Title, &dateStr, &timeStr, &durStr, &recurStr); err != nil {
+		if err := rows.Scan(&tsk.ID, &tsk.Title, &tsk.Project, &dateStr, &timeStr, &durStr, &recurStr); err != nil {
 			return nil, fmt.Errorf("%w: %v", ErrSqliteFailure, err)
 		}
 		dur, err := time.ParseDuration(durStr)

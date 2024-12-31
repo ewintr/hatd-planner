@@ -38,9 +38,10 @@ func TestAdd(t *testing.T) {
 			expErr: true,
 		},
 		{
-			name: "date time duration",
+			name: "all",
 			main: []string{"add", "title"},
 			fields: map[string]string{
+				"project":  "project",
 				"date":     aDate.String(),
 				"time":     aTime.String(),
 				"duration": anHourStr,
@@ -50,6 +51,7 @@ func TestAdd(t *testing.T) {
 				Date: aDate,
 				TaskBody: item.TaskBody{
 					Title:    "title",
+					Project:  "project",
 					Time:     aTime,
 					Duration: anHour,
 				},

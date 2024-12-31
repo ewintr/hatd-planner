@@ -72,6 +72,7 @@ func (sr ShowResult) Render() string {
 	data := [][]string{
 		{"title", sr.Task.Title},
 		{"local id", fmt.Sprintf("%d", sr.LocalID)},
+		{"project", sr.Task.Project},
 		{"date", sr.Task.Date.String()},
 		{"time", sr.Task.Time.String()},
 		{"duration", sr.Task.Duration.String()},

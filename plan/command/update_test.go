@@ -20,6 +20,7 @@ func TestUpdateExecute(t *testing.T) {
 		t.Errorf("exp nil, got %v", err)
 	}
 	title := "title"
+	project := "project"
 	aDate := item.NewDate(2024, 10, 6)
 	aTime := item.NewTime(10, 0)
 	twoHour, err := time.ParseDuration("2h")
@@ -54,6 +55,25 @@ func TestUpdateExecute(t *testing.T) {
 				Date: item.NewDate(2024, 10, 6),
 				TaskBody: item.TaskBody{
 					Title:    "updated",
+					Project:  project,
+					Time:     aTime,
+					Duration: oneHour,
+				},
+			},
+		},
+		{
+			name:    "project",
+			localID: lid,
+			main:    []string{"update", fmt.Sprintf("%d", lid)},
+			fields: map[string]string{
+				"p": "updated",
+			},
+			expTask: item.Task{
+				ID:   tskID,
+				Date: item.NewDate(2024, 10, 2),
+				TaskBody: item.TaskBody{
+					Title:    title,
+					Project:  "updated",
 					Time:     aTime,
 					Duration: oneHour,
 				},
@@ -80,6 +100,7 @@ func TestUpdateExecute(t *testing.T) {
 				Date: item.NewDate(2024, 10, 2),
 				TaskBody: item.TaskBody{
 					Title:    title,
+					Project:  project,
 					Time:     aTime,
 					Duration: oneHour,
 				},
@@ -106,6 +127,7 @@ func TestUpdateExecute(t *testing.T) {
 				Date: item.NewDate(2024, 10, 6),
 				TaskBody: item.TaskBody{
 					Title:    title,
+					Project:  project,
 					Time:     item.NewTime(11, 0),
 					Duration: oneHour,
 				},
@@ -132,6 +154,7 @@ func TestUpdateExecute(t *testing.T) {
 				Date: item.NewDate(2024, 10, 6),
 				TaskBody: item.TaskBody{
 					Title:    title,
+					Project:  project,
 					Time:     aTime,
 					Duration: twoHour,
 				},
@@ -157,6 +180,7 @@ func TestUpdateExecute(t *testing.T) {
 				Recurrer: item.NewRecurrer("2024-12-08, daily"),
 				TaskBody: item.TaskBody{
 					Title:    title,
+					Project:  project,
 					Time:     aTime,
 					Duration: oneHour,
 				},
@@ -173,6 +197,7 @@ func TestUpdateExecute(t *testing.T) {
 				Date: aDate,
 				TaskBody: item.TaskBody{
 					Title:    title,
+					Project:  project,
 					Time:     aTime,
 					Duration: oneHour,
 				},

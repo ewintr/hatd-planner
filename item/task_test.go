@@ -53,6 +53,7 @@ func TestNewTask(t *testing.T) {
 				Recurrer: item.NewRecurrer("2024-12-08, daily"),
 				Body: `{
   "title":"title",
+  "project":"project",
   "time":"08:00",
   "duration":"1h"
 }`,
@@ -63,6 +64,7 @@ func TestNewTask(t *testing.T) {
 				Recurrer: item.NewRecurrer("2024-12-08, daily"),
 				TaskBody: item.TaskBody{
 					Title:    "title",
+					Project:  "project",
 					Time:     item.NewTime(8, 0),
 					Duration: oneHour,
 				},
@@ -102,7 +104,7 @@ func TestTaskItem(t *testing.T) {
 			expItem: item.Item{
 				Kind:    item.KindTask,
 				Updated: time.Time{},
-				Body:    `{"duration":"0s","title":"","time":""}`,
+				Body:    `{"duration":"0s","title":"","project":"","time":""}`,
 			},
 		},
 		{
@@ -112,6 +114,7 @@ func TestTaskItem(t *testing.T) {
 				Date: item.NewDate(2024, 9, 23),
 				TaskBody: item.TaskBody{
 					Title:    "title",
+					Project:  "project",
 					Time:     item.NewTime(8, 0),
 					Duration: oneHour,
 				},
@@ -121,7 +124,7 @@ func TestTaskItem(t *testing.T) {
 				Kind:    item.KindTask,
 				Updated: time.Time{},
 				Date:    item.NewDate(2024, 9, 23),
-				Body:    `{"duration":"1h0m0s","title":"title","time":"08:00"}`,
+				Body:    `{"duration":"1h0m0s","title":"title","project":"project","time":"08:00"}`,
 			},
 		},
 	} {

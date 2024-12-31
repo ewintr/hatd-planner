@@ -10,6 +10,7 @@ import (
 
 type TaskBody struct {
 	Title    string        `json:"title"`
+	Project  string        `json:"project"`
 	Time     Time          `json:"time"`
 	Duration time.Duration `json:"duration"`
 }

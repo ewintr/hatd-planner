@@ -19,6 +19,7 @@ func NewAddArgs() AddArgs {
 		fieldTPL: map[string][]string{
 			"date":     {"d", "date", "on"},
 			"time":     {"t", "time", "at"},
+			"project":  {"p", "project"},
 			"duration": {"dur", "duration", "for"},
 			"recurrer": {"rec", "recurrer"},
 		},
@@ -45,6 +46,9 @@ func (aa AddArgs) Parse(main []string, fields map[string]string) (Command, error
 		},
 	}
 
+	if val, ok := fields["project"]; ok {
+		tsk.Project = val
+	}
 	if val, ok := fields["date"]; ok {
 		d := item.NewDateFromString(val)
 		if d.IsZero() {
