@@ -11,23 +11,33 @@ import (
 )
 
 type ListArgs struct {
-	params storage.TaskListParams
+	fieldTPL map[string][]string
+	params   storage.TaskListParams
 }
 
 func NewListArgs() ListArgs {
-	return ListArgs{}
+	return ListArgs{
+		fieldTPL: map[string][]string{
+			"project": {"p", "project"},
+		},
+	}
 }
 
-func (la ListArgs) Parse(main []string, flags map[string]string) (Command, error) {
+func (la ListArgs) Parse(main []string, fields map[string]string) (Command, error) {
 	if len(main) > 2 {
 		return nil, ErrWrongCommand
 	}
 
+	fields, err := ResolveFields(fields, la.fieldTPL)
+	if err != nil {
+		return nil, err
+	}
 	now := time.Now()
 	today := item.NewDate(now.Year(), int(now.Month()), now.Day())
 	tomorrow := item.NewDate(now.Year(), int(now.Month()), now.Day()+1)
 	var date item.Date
 	var includeBefore, recurrer bool
+	var project string
 
 	switch len(main) {
 	case 0:
@@ -40,7 +50,10 @@ func (la ListArgs) Parse(main []string, flags map[string]string) (Command, error
 			includeBefore = true
 		case slices.Contains([]string{"tomorrow", "tom"}, main[0]):
 			date = tomorrow
-		case main[0] == "list":
+		case main[0] == "list" || main[0] == "l":
+			if val, ok := fields["project"]; ok {
+				project = val
+			}
 		default:
 			return nil, ErrWrongCommand
 		}
@@ -60,6 +73,7 @@ func (la ListArgs) Parse(main []string, flags map[string]string) (Command, error
 				Date:          date,
 				IncludeBefore: includeBefore,
 				Recurrer:      recurrer,
+				Project:       project,
 			},
 		},
 	}, nil

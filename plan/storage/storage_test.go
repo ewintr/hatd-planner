@@ -15,14 +15,16 @@ func TestMatch(t *testing.T) {
 		Date:     item.NewDate(2024, 12, 29),
 		Recurrer: item.NewRecurrer("2024-12-29, daily"),
 		TaskBody: item.TaskBody{
-			Title: "name",
+			Title:   "name",
+			Project: "p1",
 		},
 	}
 	tskNotMatch := item.Task{
 		ID:   "id",
 		Date: item.NewDate(2024, 12, 28),
 		TaskBody: item.TaskBody{
-			Title: "name",
+			Title:   "name",
+			Project: "p2",
 		},
 	}
 
@@ -40,6 +42,12 @@ func TestMatch(t *testing.T) {
 			name: "recurrer",
 			params: storage.TaskListParams{
 				Recurrer: true,
+			},
+		},
+		{
+			name: "project",
+			params: storage.TaskListParams{
+				Project: "p1",
 			},
 		},
 	} {

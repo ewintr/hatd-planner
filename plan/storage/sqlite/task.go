@@ -80,6 +80,10 @@ func (t *SqliteTask) FindMany(params storage.TaskListParams) ([]item.Task, error
 		where = append(where, `date <= ?`)
 		args = append(args, params.Date.String())
 	}
+	if params.Project != "" {
+		where = append(where, `project = ?`)
+		args = append(args, params.Project)
+	}
 
 	if len(where) > 0 {
 		query += ` WHERE ` + where[0]

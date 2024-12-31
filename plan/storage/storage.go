@@ -32,6 +32,7 @@ type TaskListParams struct {
 	Recurrer      bool
 	Date          item.Date
 	IncludeBefore bool
+	Project       string
 }
 
 type Task interface {
@@ -52,6 +53,9 @@ func Match(tsk item.Task, params TaskListParams) bool {
 		if params.IncludeBefore && tsk.Date.After(params.Date) {
 			return false
 		}
+	}
+	if params.Project != "" && params.Project != tsk.Project {
+		return false
 	}
 
 	return true
