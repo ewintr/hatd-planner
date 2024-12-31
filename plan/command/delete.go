@@ -14,7 +14,7 @@ func NewDeleteArgs() DeleteArgs {
 }
 
 func (da DeleteArgs) Parse(main []string, flags map[string]string) (Command, error) {
-	if len(main) < 2 || main[0] != "delete" {
+	if len(main) < 2 || (main[0] != "delete" && main[0] != "done") {
 		return nil, ErrWrongCommand
 	}
 
@@ -71,7 +71,7 @@ func (del *Delete) Do(deps Dependencies) (CommandResult, error) {
 		return nil, fmt.Errorf("could not delete task: %v", err)
 	}
 
-	return nil, nil
+	return DeleteResult{}, nil
 }
 
 type DeleteResult struct{}

@@ -42,6 +42,10 @@ func TestDelete(t *testing.T) {
 			name: "valid",
 			main: []string{"delete", "1"},
 		},
+		{
+			name: "done",
+			main: []string{"done", "1"},
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			// setup
