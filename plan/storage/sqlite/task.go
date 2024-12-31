@@ -67,10 +67,10 @@ WHERE id = ?`, id).Scan(&tsk.ID, &tsk.Title, &tsk.Project, &dateStr, &timeStr, &
 func (t *SqliteTask) FindMany(params storage.TaskListParams) ([]item.Task, error) {
 	query := `SELECT id, title, project, date, time, duration, recurrer FROM tasks`
 	args := []interface{}{}
-	where := []string{}
 
+	where := []string{`recurrer = ''`}
 	if params.Recurrer {
-		where = append(where, `recurrer IS NOT NULL AND recurrer != ''`)
+		where[0] = `recurrer != ''`
 	}
 	if !params.Date.IsZero() && !params.IncludeBefore {
 		where = append(where, `date = ?`)
