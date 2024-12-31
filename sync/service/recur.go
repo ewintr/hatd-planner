@@ -53,6 +53,7 @@ func (r *Recur) Recur() error {
 		if err := r.repoSync.Update(newItem, time.Now()); err != nil {
 			return err
 		}
+		r.logger.Info("spawned instance", "newID", newItem.ID, "date", newItem.Date)
 
 		// update recurrer
 		i.RecurNext = item.FirstRecurAfter(i.Recurrer, i.RecurNext)
