@@ -45,9 +45,10 @@ func (r *Recur) Recur() error {
 	for _, i := range items {
 		r.logger.Info("processing recurring item", "id", i.ID)
 		// spawn instance
+		newRecurNext := item.FirstRecurAfter(i.Recurrer, i.RecurNext)
 		newItem := i
 		newItem.ID = uuid.New().String()
-		newItem.Date = i.RecurNext
+		newItem.Date = newRecurNext
 		newItem.Recurrer = nil
 		newItem.RecurNext = item.Date{}
 		if err := r.repoSync.Update(newItem, time.Now()); err != nil {
@@ -56,7 +57,7 @@ func (r *Recur) Recur() error {
 		r.logger.Info("spawned instance", "newID", newItem.ID, "date", newItem.Date)
 
 		// update recurrer
-		i.RecurNext = item.FirstRecurAfter(i.Recurrer, i.RecurNext)
+		i.RecurNext = newRecurNext
 		if err := r.repoSync.Update(i, time.Now()); err != nil {
 			return err
 		}
