@@ -111,7 +111,7 @@ func (a Add) Do(deps Dependencies) (CommandResult, error) {
 		return nil, fmt.Errorf("could not store sync item: %v", err)
 	}
 
-	return nil, nil
+	return AddRender{}, nil
 }
 
 type AddRender struct {
