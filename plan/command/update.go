@@ -90,7 +90,7 @@ type Update struct {
 	args UpdateArgs
 }
 
-func (u *Update) Do(deps Dependencies) (CommandResult, error) {
+func (u Update) Do(deps Dependencies) (CommandResult, error) {
 	id, err := deps.LocalIDRepo.FindOne(u.args.LocalID)
 	switch {
 	case errors.Is(err, storage.ErrNotFound):

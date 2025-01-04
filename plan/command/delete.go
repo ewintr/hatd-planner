@@ -34,7 +34,7 @@ type Delete struct {
 	Args DeleteArgs
 }
 
-func (del *Delete) Do(deps Dependencies) (CommandResult, error) {
+func (del Delete) Do(deps Dependencies) (CommandResult, error) {
 	var id string
 	idMap, err := deps.LocalIDRepo.FindAll()
 	if err != nil {

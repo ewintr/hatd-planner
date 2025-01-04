@@ -55,9 +55,9 @@ func TestTask(t *testing.T) {
 		t.Errorf("(exp -, got +)\n%s", diff)
 	}
 
-	t.Log("fond some")
+	t.Log("find some")
 	actTasks, actErr = mem.FindMany(storage.TaskListParams{
-		Date: item.NewDate(2024, 12, 29),
+		From: item.NewDate(2024, 12, 29),
 	})
 	if actErr != nil {
 		t.Errorf("exp nil, got %v", actErr)

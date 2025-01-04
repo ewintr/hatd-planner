@@ -90,7 +90,7 @@ type Add struct {
 	Args AddArgs
 }
 
-func (a *Add) Do(deps Dependencies) (CommandResult, error) {
+func (a Add) Do(deps Dependencies) (CommandResult, error) {
 	if err := deps.TaskRepo.Store(a.Args.Task); err != nil {
 		return nil, fmt.Errorf("could not store event: %v", err)
 	}

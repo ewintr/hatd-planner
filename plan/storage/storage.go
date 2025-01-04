@@ -29,10 +29,11 @@ type Sync interface {
 }
 
 type TaskListParams struct {
-	Recurrer      bool
-	Date          item.Date
-	IncludeBefore bool
-	Project       string
+	HasRecurrer bool
+	HasDate     bool
+	From        item.Date
+	To          item.Date
+	Project     string
 }
 
 type Task interface {
@@ -43,16 +44,17 @@ type Task interface {
 }
 
 func Match(tsk item.Task, params TaskListParams) bool {
-	if params.Recurrer && tsk.Recurrer == nil {
+	if params.HasRecurrer && tsk.Recurrer == nil {
 		return false
 	}
-	if !params.Date.IsZero() {
-		if !params.IncludeBefore && !params.Date.Equal(tsk.Date) {
-			return false
-		}
-		if params.IncludeBefore && tsk.Date.After(params.Date) {
-			return false
-		}
+	if params.HasDate && tsk.Date.IsZero() {
+		return false
+	}
+	if !params.From.IsZero() && params.From.After(tsk.Date) {
+		return false
+	}
+	if !params.To.IsZero() && tsk.Date.After(params.To) {
+		return false
 	}
 	if params.Project != "" && params.Project != tsk.Project {
 		return false

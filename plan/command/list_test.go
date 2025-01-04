@@ -2,11 +2,81 @@ package command_test
 
 import (
 	"testing"
+	"time"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"go-mod.ewintr.nl/planner/item"
 	"go-mod.ewintr.nl/planner/plan/command"
 	"go-mod.ewintr.nl/planner/plan/storage/memory"
 )
+
+func TestListParse(t *testing.T) {
+	t.Parallel()
+	now := time.Now()
+	today := item.NewDate(now.Year(), int(now.Month()), now.Day())
+
+	for _, tc := range []struct {
+		name    string
+		main    []string
+		fields  map[string]string
+		expArgs command.ListArgs
+		expErr  bool
+	}{
+		{
+			name:   "empty",
+			main:   []string{},
+			fields: map[string]string{},
+			expArgs: command.ListArgs{
+				To: today,
+			},
+		},
+		{
+			name:   "today",
+			main:   []string{"tod"},
+			fields: map[string]string{},
+			expArgs: command.ListArgs{
+				To: today,
+			},
+		},
+		{
+			name:   "tomorrow",
+			main:   []string{"tom"},
+			fields: map[string]string{},
+			expArgs: command.ListArgs{
+				From: today.Add(1),
+				To:   today.Add(1),
+			},
+		},
+		{
+			name:   "week",
+			main:   []string{"week"},
+			fields: map[string]string{},
+			expArgs: command.ListArgs{
+				From: today,
+				To:   today.Add(7),
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			nla := command.NewListArgs()
+			cmd, actErr := nla.Parse(tc.main, tc.fields)
+			if tc.expErr != (actErr != nil) {
+				t.Errorf("exp %v, got %v", tc.expErr, actErr != nil)
+			}
+			if tc.expErr {
+				return
+			}
+			listCmd, ok := cmd.(command.List)
+			if !ok {
+				t.Errorf("exp true, got false")
+			}
+			if diff := cmp.Diff(tc.expArgs, listCmd.Args, cmpopts.IgnoreTypes(map[string][]string{})); diff != "" {
+				t.Errorf("(+exp, -got)\n%s\n", diff)
+			}
+		})
+	}
+}
 
 func TestList(t *testing.T) {
 	t.Parallel()
@@ -29,42 +99,25 @@ func TestList(t *testing.T) {
 
 	for _, tc := range []struct {
 		name   string
-		main   []string
+		cmd    command.List
 		expRes bool
 		expErr bool
 	}{
 		{
 			name:   "empty",
-			main:   []string{},
-			expRes: true,
-		},
-		{
-			name:   "list",
-			main:   []string{"list"},
 			expRes: true,
 		},
 		{
 			name: "empty list",
-			main: []string{"list", "recur"},
-		},
-		{
-			name:   "wrong",
-			main:   []string{"delete"},
-			expErr: true,
+			cmd: command.List{
+				Args: command.ListArgs{
+					HasRecurrer: true,
+				},
+			},
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			// parse
-			cmd, actErr := command.NewListArgs().Parse(tc.main, nil)
-			if tc.expErr != (actErr != nil) {
-				t.Errorf("exp %v, got %v", tc.expErr, actErr)
-			}
-			if tc.expErr {
-				return
-			}
-
-			// do
-			res, err := cmd.Do(command.Dependencies{
+			res, err := tc.cmd.Do(command.Dependencies{
 				TaskRepo:    taskRepo,
 				LocalIDRepo: localRepo,
 			})
@@ -72,7 +125,6 @@ func TestList(t *testing.T) {
 				t.Errorf("exp nil, got %v", err)
 			}
 
-			// check
 			listRes := res.(command.ListResult)
 			actRes := len(listRes.Tasks) > 0
 			if tc.expRes != actRes {

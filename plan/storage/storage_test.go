@@ -21,7 +21,7 @@ func TestMatch(t *testing.T) {
 	}
 	tskNotMatch := item.Task{
 		ID:   "id",
-		Date: item.NewDate(2024, 12, 28),
+		Date: item.NewDate(2024, 12, 20),
 		TaskBody: item.TaskBody{
 			Title:   "name",
 			Project: "p2",
@@ -33,15 +33,22 @@ func TestMatch(t *testing.T) {
 		params storage.TaskListParams
 	}{
 		{
-			name: "date",
+			name: "from",
 			params: storage.TaskListParams{
-				Date: item.NewDate(2024, 12, 29),
+				From: item.NewDate(2024, 12, 29),
+			},
+		},
+		{
+			name: "to",
+			params: storage.TaskListParams{
+				From: item.NewDate(2024, 12, 24),
+				To:   item.NewDate(2024, 12, 29),
 			},
 		},
 		{
 			name: "recurrer",
 			params: storage.TaskListParams{
-				Recurrer: true,
+				HasRecurrer: true,
 			},
 		},
 		{

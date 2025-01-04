@@ -11,14 +11,20 @@ import (
 )
 
 type ListArgs struct {
-	fieldTPL map[string][]string
-	params   storage.TaskListParams
+	fieldTPL    map[string][]string
+	HasRecurrer bool
+	From        item.Date
+	To          item.Date
+	Project     string
 }
 
 func NewListArgs() ListArgs {
 	return ListArgs{
 		fieldTPL: map[string][]string{
-			"project": {"p", "project"},
+			"project":   {"p", "project"},
+			"from":      {"f", "from"},
+			"to":        {"t", "to"},
+			"recurring": {"rec", "recurring"},
 		},
 	}
 }
@@ -32,63 +38,74 @@ func (la ListArgs) Parse(main []string, fields map[string]string) (Command, erro
 	if err != nil {
 		return nil, err
 	}
+
 	now := time.Now()
 	today := item.NewDate(now.Year(), int(now.Month()), now.Day())
-	tomorrow := item.NewDate(now.Year(), int(now.Month()), now.Day()+1)
-	var date item.Date
-	var includeBefore, recurrer bool
-	var project string
 
 	switch len(main) {
 	case 0:
-		date = today
-		includeBefore = true
+		fields["to"] = today.String()
 	case 1:
 		switch {
-		case slices.Contains([]string{"today", "tod"}, main[0]):
-			date = today
-			includeBefore = true
-		case slices.Contains([]string{"tomorrow", "tom"}, main[0]):
-			date = tomorrow
-		case main[0] == "list" || main[0] == "l":
-			if val, ok := fields["project"]; ok {
-				project = val
-			}
+		case slices.Contains([]string{"tod", "today"}, main[0]):
+			fields["to"] = today.String()
+		case slices.Contains([]string{"tom", "tomorrow"}, main[0]):
+			fields["from"] = today.Add(1).String()
+			fields["to"] = today.Add(1).String()
+		case main[0] == "week":
+			fields["from"] = today.String()
+			fields["to"] = today.Add(7).String()
+		case main[0] == "recur":
+			fields["recurring"] = "true"
+		case main[0] == "list":
+			fields["from"] = today.String()
+			fields["to"] = today.String()
 		default:
 			return nil, ErrWrongCommand
 		}
-	case 2:
-		if main[0] == "list" && main[1] == "recur" {
-			recurrer = true
-		} else {
-			return nil, ErrWrongCommand
-		}
-	default:
-		return nil, ErrWrongCommand
 	}
 
-	return &List{
-		args: ListArgs{
-			params: storage.TaskListParams{
-				Date:          date,
-				IncludeBefore: includeBefore,
-				Recurrer:      recurrer,
-				Project:       project,
-			},
+	var fromDate, toDate item.Date
+	var hasRecurrer bool
+	var project string
+	if val, ok := fields["from"]; ok {
+		fromDate = item.NewDateFromString(val)
+	}
+	if val, ok := fields["to"]; ok {
+		toDate = item.NewDateFromString(val)
+	}
+	if val, ok := fields["recurrer"]; ok && val == "true" {
+		hasRecurrer = true
+	}
+	if val, ok := fields["project"]; ok {
+		project = val
+	}
+
+	return List{
+		Args: ListArgs{
+			HasRecurrer: hasRecurrer,
+			From:        fromDate,
+			To:          toDate,
+			Project:     project,
 		},
 	}, nil
 }
 
 type List struct {
-	args ListArgs
+	Args ListArgs
 }
 
-func (list *List) Do(deps Dependencies) (CommandResult, error) {
+func (list List) Do(deps Dependencies) (CommandResult, error) {
 	localIDs, err := deps.LocalIDRepo.FindAll()
 	if err != nil {
 		return nil, fmt.Errorf("could not get local ids: %v", err)
 	}
-	all, err := deps.TaskRepo.FindMany(list.args.params)
+	all, err := deps.TaskRepo.FindMany(storage.TaskListParams{
+		HasRecurrer: list.Args.HasRecurrer,
+		From:        list.Args.From,
+		To:          list.Args.To,
+		Project:     list.Args.Project,
+	})
 	if err != nil {
 		return nil, err
 	}

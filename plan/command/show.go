@@ -38,7 +38,7 @@ type Show struct {
 	args ShowArgs
 }
 
-func (s *Show) Do(deps Dependencies) (CommandResult, error) {
+func (s Show) Do(deps Dependencies) (CommandResult, error) {
 	id, err := deps.LocalIDRepo.FindOne(s.args.localID)
 	switch {
 	case errors.Is(err, storage.ErrNotFound):
