@@ -14,6 +14,7 @@ func TestRecur(t *testing.T) {
 
 	now := time.Now()
 	today := item.NewDate(2024, 1, 1)
+	until := today.Add(3)
 	mem := NewMemory()
 	rec := NewRecur(mem, mem, slog.New(slog.NewTextHandler(io.Discard, nil)))
 
@@ -33,7 +34,7 @@ func TestRecur(t *testing.T) {
 	}
 
 	// Run recurrence
-	if err := rec.Recur(); err != nil {
+	if err := rec.Recur(until); err != nil {
 		t.Errorf("Recur failed: %v", err)
 	}
 
@@ -43,14 +44,14 @@ func TestRecur(t *testing.T) {
 		t.Errorf("failed to get updated items: %v", err)
 	}
 
-	if len(items) != 2 { // Original + new instance
+	if len(items) != 4 { // Original + 3 new instances
 		t.Errorf("expected 2 items, got %d", len(items))
 	}
 
 	// Check that RecurNext was updated
-	recurItems, err := mem.ShouldRecur(today.Add(1))
+	recurItems, err := mem.ShouldRecur(until.Add(1))
 	if err != nil {
-		t.Fatal(err)
+		t.Errorf("exp nil, got %v", err)
 	}
 	if len(recurItems) != 1 {
 		t.Errorf("expected 1 recur item, got %d", len(recurItems))

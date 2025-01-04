@@ -19,6 +19,7 @@ var (
 	dbName     = flag.String("dbname", "planner", "database name")
 	dbUser     = flag.String("dbuser", "test", "database user")
 	dbPassword = flag.String("dbpassword", "test", "database password")
+	recurDays  = flag.Int("recurdays", 8, "amount of days ahead to recur")
 )
 
 func main() {
@@ -39,7 +40,7 @@ func main() {
 		"dbUser": *dbUser,
 	})
 	recurrer := NewRecur(repo, repo, logger)
-	go recurrer.Run(6 * time.Hour)
+	go recurrer.Run(*recurDays, 6*time.Hour)
 
 	srv := NewServer(repo, *apiKey, logger)
 	go http.ListenAndServe(fmt.Sprintf(":%s", *apiPort), srv)
