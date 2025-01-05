@@ -37,10 +37,20 @@ func NewUpdateArgs() UpdateArgs {
 }
 
 func (ua UpdateArgs) Parse(main []string, fields map[string]string) (Command, error) {
-	if len(main) < 2 || main[0] != "update" {
+	if len(main) < 2 {
 		return nil, ErrWrongCommand
 	}
-	localID, err := strconv.Atoi(main[1])
+	aliases := []string{"u", "update"}
+	var localIDStr string
+	switch {
+	case slices.Contains(aliases, main[0]):
+		localIDStr = main[1]
+	case slices.Contains(aliases, main[1]):
+		localIDStr = main[0]
+	default:
+		return nil, ErrWrongCommand
+	}
+	localID, err := strconv.Atoi(localIDStr)
 	if err != nil {
 		return nil, fmt.Errorf("not a local id: %v", main[1])
 	}
