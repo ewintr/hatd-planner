@@ -41,6 +41,7 @@ type Task interface {
 	FindOne(id string) (item.Task, error)
 	FindMany(params TaskListParams) ([]item.Task, error)
 	Delete(id string) error
+	Projects() (map[string]int, error)
 }
 
 func Match(tsk item.Task, params TaskListParams) bool {

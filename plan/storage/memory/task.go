@@ -67,3 +67,15 @@ func (t *Task) Delete(id string) error {
 
 	return nil
 }
+
+func (t *Task) Projects() (map[string]int, error) {
+	projects := make(map[string]int)
+	for _, tsk := range t.tasks {
+		if _, ok := projects[tsk.Project]; !ok {
+			projects[tsk.Project] = 0
+		}
+		projects[tsk.Project]++
+	}
+
+	return projects, nil
+}

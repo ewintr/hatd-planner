@@ -125,8 +125,8 @@ func (t *SqliteTask) FindMany(params storage.TaskListParams) ([]item.Task, error
 	return tasks, nil
 }
 
-func (s *SqliteTask) Delete(id string) error {
-	result, err := s.db.Exec(`
+func (t *SqliteTask) Delete(id string) error {
+	result, err := t.db.Exec(`
 DELETE FROM tasks
 WHERE id = ?`, id)
 	if err != nil {
@@ -143,4 +143,24 @@ WHERE id = ?`, id)
 	}
 
 	return nil
+}
+
+func (t *SqliteTask) Projects() (map[string]int, error) {
+	rows, err := t.db.Query(`SELECT project, count(*) FROM tasks GROUP BY project`)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrSqliteFailure, err)
+	}
+
+	result := make(map[string]int)
+	defer rows.Close()
+	for rows.Next() {
+		var pr string
+		var count int
+		if err := rows.Scan(&pr, &count); err != nil {
+			return nil, fmt.Errorf("%w: %v", ErrSqliteFailure, err)
+		}
+		result[pr] = count
+	}
+
+	return result, nil
 }
