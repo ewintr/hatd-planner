@@ -52,6 +52,10 @@ func (r *Sync) DeleteAll() error {
 	return nil
 }
 
+func (r *Sync) SetLastUpdate(ts time.Time) error {
+	return nil
+}
+
 func (r *Sync) LastUpdate() (time.Time, error) {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()

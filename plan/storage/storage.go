@@ -25,6 +25,7 @@ type Sync interface {
 	FindAll() ([]item.Item, error)
 	Store(i item.Item) error
 	DeleteAll() error
+	SetLastUpdate(ts time.Time) error
 	LastUpdate() (time.Time, error)
 }
 

@@ -84,20 +84,22 @@ func (s *SqliteSync) DeleteAll() error {
 	return nil
 }
 
+func (s *SqliteSync) SetLastUpdate(ts time.Time) error {
+	if _, err := s.db.Exec(`UPDATE syncupdate SET timestamp = ?`, ts.Format(time.RFC3339)); err != nil {
+		return fmt.Errorf("%w: could not store timestamp: %v", ErrSqliteFailure, err)
+	}
+	return nil
+}
+
 func (s *SqliteSync) LastUpdate() (time.Time, error) {
-	var updatedStr sql.NullString
-	err := s.db.QueryRow("SELECT MAX(updated) FROM items").Scan(&updatedStr)
-	if err != nil {
+	var tsStr string
+	if err := s.db.QueryRow("SELECT timestamp FROM syncupdate").Scan(&tsStr); err != nil {
 		return time.Time{}, fmt.Errorf("%w: failed to get last update: %v", ErrSqliteFailure, err)
 	}
-
-	if !updatedStr.Valid {
-		return time.Time{}, nil // Return zero time if NULL or no rows
-	}
-
-	lastUpdate, err := time.Parse(time.RFC3339, updatedStr.String)
+	ts, err := time.Parse(time.RFC3339, tsStr)
 	if err != nil {
-		return time.Time{}, fmt.Errorf("%w: failed to parse last update time: %v", ErrSqliteFailure, err)
+		return time.Time{}, fmt.Errorf("%w: could not convert db timstamp into time.Time: %v", ErrSqliteFailure, err)
 	}
-	return lastUpdate, nil
+
+	return ts, nil
 }

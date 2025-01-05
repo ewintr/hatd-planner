@@ -59,7 +59,7 @@ func (c *HTTP) Updated(ks []item.Kind, ts time.Time) ([]item.Item, error) {
 	}
 	u := fmt.Sprintf("%s/sync?ks=%s", c.baseURL, strings.Join(ksStr, ","))
 	if !ts.IsZero() {
-		u = fmt.Sprintf("%s&ts=", url.QueryEscape(ts.Format(time.RFC3339)))
+		u = fmt.Sprintf("%s&ts=%s", u, url.QueryEscape(ts.Format(time.RFC3339)))
 	}
 	req, err := http.NewRequest(http.MethodGet, u, nil)
 	if err != nil {

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 
 	"go-mod.ewintr.nl/planner/item"
 	"go-mod.ewintr.nl/planner/plan/storage"
@@ -39,17 +40,21 @@ func (s Sync) Do(deps Dependencies) (CommandResult, error) {
 	}
 
 	// get new/updated items
-	ts, err := deps.SyncRepo.LastUpdate()
+	oldTS, err := deps.SyncRepo.LastUpdate()
 	if err != nil {
 		return nil, fmt.Errorf("could not find timestamp of last update: %v", err)
 	}
-	recItems, err := deps.SyncClient.Updated([]item.Kind{item.KindTask}, ts)
+	recItems, err := deps.SyncClient.Updated([]item.Kind{item.KindTask}, oldTS)
 	if err != nil {
 		return nil, fmt.Errorf("could not receive updates: %v", err)
 	}
 
 	updated := make([]item.Item, 0)
+	var newTS time.Time
 	for _, ri := range recItems {
+		if ri.Updated.After(newTS) {
+			newTS = ri.Updated
+		}
 		if ri.Deleted {
 			if err := deps.LocalIDRepo.Delete(ri.ID); err != nil && !errors.Is(err, storage.ErrNotFound) {
 				return nil, fmt.Errorf("could not delete local id: %v", err)
@@ -92,6 +97,10 @@ func (s Sync) Do(deps Dependencies) (CommandResult, error) {
 				return nil, fmt.Errorf("could not store local id: %v", err)
 			}
 		}
+	}
+
+	if err := deps.SyncRepo.SetLastUpdate(newTS); err != nil {
+		return nil, fmt.Errorf("could not store update timestamp: %v", err)
 	}
 
 	return SyncResult{}, nil

@@ -39,6 +39,9 @@ var migrations = []string{
 	`INSERT INTO localids (id, local_id)
     SELECT id, local_id FROM localids_backup`,
 	`DROP TABLE localids_backup`,
+
 	`ALTER TABLE items ADD COLUMN date TEXT NOT NULL DEFAULT ''`,
 	`ALTER TABLE tasks ADD COLUMN project TEXT NOT NULL DEFAULT ''`,
+	`CREATE TABLE syncupdate ("timestamp" TIMESTAMP NOT NULL)`,
+	`INSERT INTO syncupdate (timestamp) VALUES ("0001-01-01T00:00:00Z")`,
 }
