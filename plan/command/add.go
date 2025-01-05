@@ -2,6 +2,7 @@ package command
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -27,9 +28,10 @@ func NewAddArgs() AddArgs {
 }
 
 func (aa AddArgs) Parse(main []string, fields map[string]string) (Command, error) {
-	if len(main) == 0 || main[0] != "add" {
+	if len(main) == 0 || !slices.Contains([]string{"add", "a", "new", "n"}, main[0]) {
 		return nil, ErrWrongCommand
 	}
+
 	main = main[1:]
 	if len(main) == 0 {
 		return nil, fmt.Errorf("%w: title is required for add", ErrInvalidArg)
