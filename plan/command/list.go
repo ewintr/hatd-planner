@@ -44,7 +44,7 @@ func (la ListArgs) Parse(main []string, fields map[string]string) (Command, erro
 
 	switch len(main) {
 	case 0:
-		fields["to"] = today.String()
+		// fields["to"] = today.String()
 	case 1:
 		switch {
 		case slices.Contains([]string{"tod", "today"}, main[0]):
