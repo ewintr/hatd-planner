@@ -49,7 +49,7 @@ func (r *Recur) Recur(until item.Date) error {
 	r.logger.Info("found recurring items", "count", len(items))
 	for _, i := range items {
 		r.logger.Info("processing recurring item", "id", i.ID)
-		newRecurNext := item.FirstRecurAfter(i.Recurrer, i.RecurNext)
+		newRecurNext := i.RecurNext
 
 		for {
 			// spawn instance

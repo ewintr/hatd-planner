@@ -44,8 +44,8 @@ func TestRecur(t *testing.T) {
 		t.Errorf("failed to get updated items: %v", err)
 	}
 
-	if len(items) != 4 { // Original + 3 new instances
-		t.Errorf("expected 2 items, got %d", len(items))
+	if len(items) != 5 { // Original + 4 new instances
+		t.Errorf("expected 5 items, got %d", len(items))
 	}
 
 	// Check that RecurNext was updated
