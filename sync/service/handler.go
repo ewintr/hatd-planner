@@ -100,7 +100,7 @@ func (s *Server) SyncGet(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fmt.Fprint(w, string(body))
-	s.logger.Info("served sync get", "count", len(items), "remoteAddr", r.RemoteAddr)
+	s.logger.Info("served sync get", "count", len(items), "remoteAddr", getClientIP(r))
 }
 
 func (s *Server) SyncPost(w http.ResponseWriter, r *http.Request) {
@@ -155,7 +155,7 @@ func (s *Server) SyncPost(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusNoContent)
 
-	s.logger.Info("served sync post", "count", len(items), "remoteAddr", r.RemoteAddr)
+	s.logger.Info("served sync post", "count", len(items), "remoteAddr", getClientIP(r))
 }
 
 // ShiftPath splits off the first component of p, which will be cleaned of
@@ -177,4 +177,12 @@ func Index(w http.ResponseWriter, r *http.Request) {
 
 func fmtError(msg string) string {
 	return fmt.Sprintf(`{"error":%q}`, msg)
+}
+
+func getClientIP(r *http.Request) string {
+	ip := r.Header.Get("X-Real-IP")
+	if ip == "" {
+		ip = strings.Split(r.RemoteAddr, ":")[0]
+	}
+	return ip
 }
