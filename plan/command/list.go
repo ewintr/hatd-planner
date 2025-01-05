@@ -56,7 +56,7 @@ func (la ListArgs) Parse(main []string, fields map[string]string) (Command, erro
 			fields["from"] = today.String()
 			fields["to"] = today.Add(7).String()
 		case main[0] == "recur":
-			fields["recurring"] = "true"
+			fields["recurrer"] = "true"
 		// case main[0] == "list":
 		// 	fields["from"] = today.String()
 		// 	fields["to"] = today.String()
