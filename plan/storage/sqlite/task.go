@@ -68,7 +68,7 @@ func (t *SqliteTask) FindMany(params storage.TaskListParams) ([]item.Task, error
 	query := `SELECT id, title, project, date, time, duration, recurrer FROM tasks`
 	args := []interface{}{}
 
-	where := []string{`recurrer = ''`}
+	where := make([]string, 0)
 	if params.HasRecurrer {
 		where[0] = `recurrer != ''`
 	}
