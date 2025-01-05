@@ -3,6 +3,7 @@ package command
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -12,14 +13,15 @@ import (
 )
 
 type UpdateArgs struct {
-	fieldTPL map[string][]string
-	LocalID  int
-	Title    string
-	Project  string
-	Date     item.Date
-	Time     item.Time
-	Duration time.Duration
-	Recurrer item.Recurrer
+	fieldTPL   map[string][]string
+	NeedUpdate []string
+	LocalID    int
+	Title      string
+	Project    string
+	Date       item.Date
+	Time       item.Time
+	Duration   time.Duration
+	Recurrer   item.Recurrer
 }
 
 func NewUpdateArgs() UpdateArgs {
@@ -47,40 +49,54 @@ func (ua UpdateArgs) Parse(main []string, fields map[string]string) (Command, er
 		return nil, err
 	}
 	args := UpdateArgs{
-		LocalID: localID,
-		Title:   strings.Join(main[2:], " "),
+		NeedUpdate: make([]string, 0),
+		LocalID:    localID,
+		Title:      strings.Join(main[2:], " "),
 	}
 
 	if val, ok := fields["project"]; ok {
+		args.NeedUpdate = append(args.NeedUpdate, "project")
 		args.Project = val
 	}
 	if val, ok := fields["date"]; ok {
-		d := item.NewDateFromString(val)
-		if d.IsZero() {
-			return nil, fmt.Errorf("%w: could not parse date", ErrInvalidArg)
+		args.NeedUpdate = append(args.NeedUpdate, "date")
+		if val != "" {
+			d := item.NewDateFromString(val)
+			if d.IsZero() {
+				return nil, fmt.Errorf("%w: could not parse date", ErrInvalidArg)
+			}
+			args.Date = d
 		}
-		args.Date = d
 	}
 	if val, ok := fields["time"]; ok {
-		t := item.NewTimeFromString(val)
-		if t.IsZero() {
-			return nil, fmt.Errorf("%w: could not parse time", ErrInvalidArg)
+		args.NeedUpdate = append(args.NeedUpdate, "time")
+		if val != "" {
+			t := item.NewTimeFromString(val)
+			if t.IsZero() {
+				return nil, fmt.Errorf("%w: could not parse time", ErrInvalidArg)
+			}
+			args.Time = t
 		}
-		args.Time = t
 	}
 	if val, ok := fields["duration"]; ok {
-		d, err := time.ParseDuration(val)
-		if err != nil {
-			return nil, fmt.Errorf("%w: could not parse duration", ErrInvalidArg)
+		args.NeedUpdate = append(args.NeedUpdate, "duration")
+		if val != "" {
+			d, err := time.ParseDuration(val)
+			if err != nil {
+				return nil, fmt.Errorf("%w: could not parse duration", ErrInvalidArg)
+			}
+			args.Duration = d
 		}
-		args.Duration = d
 	}
 	if val, ok := fields["recurrer"]; ok {
-		rec := item.NewRecurrer(val)
-		if rec == nil {
-			return nil, fmt.Errorf("%w: could not parse recurrer", ErrInvalidArg)
+		args.NeedUpdate = append(args.NeedUpdate, "recurrer")
+		if val != "" {
+			rec := item.NewRecurrer(val)
+			if rec == nil {
+				return nil, fmt.Errorf("%w: could not parse recurrer", ErrInvalidArg)
+			}
+			args.Recurrer = rec
 		}
-		args.Recurrer = rec
 	}
 
 	return &Update{args}, nil
@@ -107,19 +123,19 @@ func (u Update) Do(deps Dependencies) (CommandResult, error) {
 	if u.args.Title != "" {
 		tsk.Title = u.args.Title
 	}
-	if u.args.Project != "" {
+	if slices.Contains(u.args.NeedUpdate, "project") {
 		tsk.Project = u.args.Project
 	}
-	if !u.args.Date.IsZero() {
+	if slices.Contains(u.args.NeedUpdate, "date") {
 		tsk.Date = u.args.Date
 	}
-	if !u.args.Time.IsZero() {
+	if slices.Contains(u.args.NeedUpdate, "time") {
 		tsk.Time = u.args.Time
 	}
-	if u.args.Duration != 0 {
+	if slices.Contains(u.args.NeedUpdate, "duration") {
 		tsk.Duration = u.args.Duration
 	}
-	if u.args.Recurrer != nil {
+	if slices.Contains(u.args.NeedUpdate, "recurrer") {
 		tsk.Recurrer = u.args.Recurrer
 		tsk.RecurNext = tsk.Recurrer.First()
 	}

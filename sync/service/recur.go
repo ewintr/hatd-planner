@@ -52,10 +52,6 @@ func (r *Recur) Recur(until item.Date) error {
 		newRecurNext := item.FirstRecurAfter(i.Recurrer, i.RecurNext)
 
 		for {
-			if newRecurNext.After(until) {
-				break
-			}
-
 			// spawn instance
 			newItem := i
 			newItem.ID = uuid.New().String()
@@ -68,6 +64,10 @@ func (r *Recur) Recur(until item.Date) error {
 			r.logger.Info("spawned instance", "newID", newItem.ID, "date", newItem.Date)
 
 			newRecurNext = item.FirstRecurAfter(i.Recurrer, newRecurNext)
+
+			if newRecurNext.After(until) {
+				break
+			}
 		}
 
 		// update recurrer

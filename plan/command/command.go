@@ -82,9 +82,15 @@ func FindFields(args []string) ([]string, map[string]string) {
 	fields := make(map[string]string)
 	main := make([]string, 0)
 	for i := 0; i < len(args); i++ {
+		// normal key:value
 		if k, v, ok := strings.Cut(args[i], ":"); ok && !strings.Contains(k, " ") {
 			fields[k] = v
 			continue
+		}
+		// empty key:
+		if !strings.Contains(args[i], " ") && strings.HasSuffix(args[i], ":") {
+			k := strings.TrimSuffix(args[i], ":")
+			fields[k] = ""
 		}
 		main = append(main, args[i])
 	}
