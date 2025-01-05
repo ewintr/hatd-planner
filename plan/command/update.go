@@ -40,7 +40,7 @@ func (ua UpdateArgs) Parse(main []string, fields map[string]string) (Command, er
 	if len(main) < 2 {
 		return nil, ErrWrongCommand
 	}
-	aliases := []string{"u", "update"}
+	aliases := []string{"u", "update", "m", "mod"}
 	var localIDStr string
 	switch {
 	case slices.Contains(aliases, main[0]):
