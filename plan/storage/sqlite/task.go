@@ -69,20 +69,26 @@ func (t *SqliteTask) FindMany(params storage.TaskListParams) ([]item.Task, error
 	args := []interface{}{}
 
 	where := make([]string, 0)
+	var dateNonEmpty bool
 	if params.HasRecurrer {
 		where[0] = `recurrer != ''`
 	}
 	if !params.From.IsZero() {
 		where = append(where, `date >= ?`)
 		args = append(args, params.From.String())
+		dateNonEmpty = true
 	}
 	if !params.To.IsZero() {
 		where = append(where, `date <= ?`)
 		args = append(args, params.To.String())
+		dateNonEmpty = true
 	}
 	if params.Project != "" {
 		where = append(where, `project = ?`)
 		args = append(args, params.Project)
+	}
+	if dateNonEmpty {
+		where = append(where, `date != ""`)
 	}
 
 	if len(where) > 0 {
