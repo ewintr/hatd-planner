@@ -136,15 +136,46 @@ type ListResult struct {
 }
 
 func (lr ListResult) Render() string {
-	data := [][]string{{"id", "project", "date", "dur", "title"}}
+	var showRec, showDur bool
 	for _, tl := range lr.Tasks {
-		data = append(data, []string{
-			fmt.Sprintf("%d", tl.LocalID),
-			tl.Task.Project,
-			tl.Task.Date.String(),
-			tl.Task.Duration.String(),
-			tl.Task.Title,
-		})
+		if tl.Task.Recurrer != nil {
+			showRec = true
+		}
+		if tl.Task.Duration > time.Duration(0) {
+			showDur = true
+		}
+	}
+
+	title := []string{"id"}
+	if showRec {
+		title = append(title, "rec")
+	}
+	title = append(title, "project", "date")
+	if showDur {
+		title = append(title, "dur")
+	}
+	title = append(title, "title")
+
+	data := [][]string{title}
+	for _, tl := range lr.Tasks {
+		row := []string{fmt.Sprintf("%d", tl.LocalID)}
+		if showRec {
+			recStr := ""
+			if tl.Task.Recurrer != nil {
+				recStr = "*"
+			}
+			row = append(row, recStr)
+		}
+		row = append(row, tl.Task.Project, tl.Task.Date.String())
+		if showDur {
+			durStr := ""
+			if tl.Task.Duration > time.Duration(0) {
+				durStr = tl.Task.Duration.String()
+			}
+			row = append(row, durStr)
+		}
+		row = append(row, tl.Task.Title)
+		data = append(data, row)
 	}
 
 	return fmt.Sprintf("\n%s\n", format.Table(data))
