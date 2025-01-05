@@ -2,6 +2,7 @@ package command
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
 )
 
@@ -14,7 +15,7 @@ func NewDeleteArgs() DeleteArgs {
 }
 
 func (da DeleteArgs) Parse(main []string, flags map[string]string) (Command, error) {
-	if len(main) < 2 || (main[0] != "delete" && main[0] != "done") {
+	if len(main) != 2 || !slices.Contains([]string{"d", "delete", "done"}, main[0]) {
 		return nil, ErrWrongCommand
 	}
 
