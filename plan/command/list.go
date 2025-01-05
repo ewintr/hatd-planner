@@ -3,6 +3,7 @@ package command
 import (
 	"fmt"
 	"slices"
+	"sort"
 	"time"
 
 	"go-mod.ewintr.nl/planner/item"
@@ -136,6 +137,25 @@ type ListResult struct {
 }
 
 func (lr ListResult) Render() string {
+	sort.Slice(lr.Tasks, func(i, j int) bool {
+		if lr.Tasks[i].Task.Project < lr.Tasks[j].Task.Project {
+			return true
+		}
+		if lr.Tasks[i].Task.Project > lr.Tasks[j].Task.Project {
+			return false
+		}
+		if lr.Tasks[i].Task.Recurrer == nil && lr.Tasks[j].Task.Recurrer != nil {
+			return true
+		}
+		if lr.Tasks[i].Task.Recurrer != nil && lr.Tasks[j].Task.Recurrer == nil {
+			return false
+		}
+		if lr.Tasks[i].Task.Date.After(lr.Tasks[j].Task.Date) {
+			return false
+		}
+		return lr.Tasks[i].LocalID < lr.Tasks[j].LocalID
+	})
+
 	var showRec, showDur bool
 	for _, tl := range lr.Tasks {
 		if tl.Task.Recurrer != nil {

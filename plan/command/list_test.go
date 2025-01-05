@@ -24,12 +24,10 @@ func TestListParse(t *testing.T) {
 		expErr  bool
 	}{
 		{
-			name:   "empty",
-			main:   []string{},
-			fields: map[string]string{},
-			expArgs: command.ListArgs{
-				To: today,
-			},
+			name:    "empty",
+			main:    []string{},
+			fields:  map[string]string{},
+			expArgs: command.ListArgs{},
 		},
 		{
 			name:   "today",
