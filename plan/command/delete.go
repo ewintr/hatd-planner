@@ -15,11 +15,21 @@ func NewDeleteArgs() DeleteArgs {
 }
 
 func (da DeleteArgs) Parse(main []string, flags map[string]string) (Command, error) {
-	if len(main) != 2 || !slices.Contains([]string{"d", "delete", "done"}, main[0]) {
+	if len(main) != 2 {
+		return nil, ErrWrongCommand
+	}
+	aliases := []string{"d", "delete", "done"}
+	var localIDStr string
+	switch {
+	case slices.Contains(aliases, main[0]):
+		localIDStr = main[1]
+	case slices.Contains(aliases, main[1]):
+		localIDStr = main[0]
+	default:
 		return nil, ErrWrongCommand
 	}
 
-	localID, err := strconv.Atoi(main[1])
+	localID, err := strconv.Atoi(localIDStr)
 	if err != nil {
 		return nil, fmt.Errorf("not a local id: %v", main[1])
 	}
