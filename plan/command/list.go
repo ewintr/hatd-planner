@@ -137,6 +137,10 @@ type ListResult struct {
 }
 
 func (lr ListResult) Render() string {
+	if len(lr.Tasks) == 0 {
+		return "\nno tasks to display\n"
+	}
+
 	sort.Slice(lr.Tasks, func(i, j int) bool {
 		if lr.Tasks[i].Task.Date.After(lr.Tasks[j].Task.Date) {
 			return false

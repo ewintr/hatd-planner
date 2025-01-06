@@ -88,5 +88,5 @@ func (del Delete) Do(deps Dependencies) (CommandResult, error) {
 type DeleteResult struct{}
 
 func (dr DeleteResult) Render() string {
-	return "task deleted"
+	return "task removed"
 }
