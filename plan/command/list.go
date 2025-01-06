@@ -159,13 +159,16 @@ func (lr ListResult) Render() string {
 		return lr.Tasks[i].LocalID < lr.Tasks[j].LocalID
 	})
 
-	var showRec, showDur bool
+	var showRec, showTime, showDur bool
 	for _, tl := range lr.Tasks {
 		if tl.Task.Recurrer != nil {
 			showRec = true
 		}
 		if tl.Task.Duration > time.Duration(0) {
 			showDur = true
+		}
+		if !tl.Task.Time.IsZero() {
+			showTime = true
 		}
 	}
 
@@ -174,6 +177,9 @@ func (lr ListResult) Render() string {
 		title = append(title, "rec")
 	}
 	title = append(title, "project", "date")
+	if showTime {
+		title = append(title, "time")
+	}
 	if showDur {
 		title = append(title, "dur")
 	}
@@ -190,6 +196,9 @@ func (lr ListResult) Render() string {
 			row = append(row, recStr)
 		}
 		row = append(row, tl.Task.Project, tl.Task.Date.String())
+		if showTime {
+			row = append(row, tl.Task.Time.String())
+		}
 		if showDur {
 			durStr := ""
 			if tl.Task.Duration > time.Duration(0) {
