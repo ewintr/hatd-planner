@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"go-mod.ewintr.nl/planner/plan/storage"
 	_ "modernc.org/sqlite"
 )
 
@@ -19,27 +20,43 @@ var (
 	ErrSqliteFailure            = errors.New("sqlite returned an error")
 )
 
-func NewSqlites(dbPath string) (*LocalID, *SqliteTask, *SqliteSync, error) {
+type Sqlites struct {
+	db *sql.DB
+}
+
+func (sqs *Sqlites) Begin() (*storage.Tx, error) {
+	tx, err := sqs.db.Begin()
+	if err != nil {
+		return nil, err
+	}
+	return storage.NewTx(tx), nil
+}
+
+func (sqs *Sqlites) LocalID(tx *storage.Tx) storage.LocalID {
+	return &LocalID{tx: tx}
+}
+
+func (sqs *Sqlites) Sync(tx *storage.Tx) storage.Sync {
+	return &Sync{tx: tx}
+}
+
+func (sqs *Sqlites) Task(tx *storage.Tx) storage.Task {
+	return &SqliteTask{tx: tx}
+}
+
+func NewSqlites(dbPath string) (*Sqlites, error) {
 	db, err := sql.Open("sqlite", dbPath)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("%w: %v", ErrInvalidConfiguration, err)
-	}
-
-	sl := &LocalID{
-		db: db,
-	}
-	se := &SqliteTask{
-		db: db,
-	}
-	ss := &SqliteSync{
-		db: db,
+		return nil, fmt.Errorf("%w: %v", ErrInvalidConfiguration, err)
 	}
 
 	if err := migrate(db, migrations); err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
 
-	return sl, se, ss, nil
+	return &Sqlites{
+		db: db,
+	}, nil
 }
 
 func migrate(db *sql.DB, wanted []string) error {

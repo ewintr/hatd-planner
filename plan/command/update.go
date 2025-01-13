@@ -10,6 +10,7 @@ import (
 
 	"go-mod.ewintr.nl/planner/item"
 	"go-mod.ewintr.nl/planner/plan/storage"
+	"go-mod.ewintr.nl/planner/sync/client"
 )
 
 type UpdateArgs struct {
@@ -116,8 +117,14 @@ type Update struct {
 	args UpdateArgs
 }
 
-func (u Update) Do(deps Dependencies) (CommandResult, error) {
-	id, err := deps.LocalIDRepo.FindOne(u.args.LocalID)
+func (u Update) Do(repos Repositories, _ client.Client) (CommandResult, error) {
+	tx, err := repos.Begin()
+	if err != nil {
+		return nil, fmt.Errorf("could not start transaction: %v", err)
+	}
+	defer tx.Rollback()
+
+	id, err := repos.LocalID(tx).FindOne(u.args.LocalID)
 	switch {
 	case errors.Is(err, storage.ErrNotFound):
 		return nil, fmt.Errorf("could not find local id")
@@ -125,7 +132,7 @@ func (u Update) Do(deps Dependencies) (CommandResult, error) {
 		return nil, err
 	}
 
-	tsk, err := deps.TaskRepo.FindOne(id)
+	tsk, err := repos.Task(tx).FindOne(id)
 	if err != nil {
 		return nil, fmt.Errorf("could not find task")
 	}
@@ -154,7 +161,7 @@ func (u Update) Do(deps Dependencies) (CommandResult, error) {
 		return nil, fmt.Errorf("task is unvalid")
 	}
 
-	if err := deps.TaskRepo.Store(tsk); err != nil {
+	if err := repos.Task(tx).Store(tsk); err != nil {
 		return nil, fmt.Errorf("could not store task: %v", err)
 	}
 
@@ -162,8 +169,12 @@ func (u Update) Do(deps Dependencies) (CommandResult, error) {
 	if err != nil {
 		return nil, fmt.Errorf("could not convert task to sync item: %v", err)
 	}
-	if err := deps.SyncRepo.Store(it); err != nil {
+	if err := repos.Sync(tx).Store(it); err != nil {
 		return nil, fmt.Errorf("could not store sync item: %v", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("could not update task: %v", err)
 	}
 
 	return UpdateResult{}, nil

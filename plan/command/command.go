@@ -20,11 +20,11 @@ var (
 	ErrInvalidArg   = errors.New("invalid argument")
 )
 
-type Dependencies struct {
-	LocalIDRepo storage.LocalID
-	TaskRepo    storage.Task
-	SyncRepo    storage.Sync
-	SyncClient  client.Client
+type Repositories interface {
+	Begin() (*storage.Tx, error)
+	LocalID(tx *storage.Tx) storage.LocalID
+	Sync(tx *storage.Tx) storage.Sync
+	Task(tx *storage.Tx) storage.Task
 }
 
 type CommandArgs interface {
@@ -32,7 +32,7 @@ type CommandArgs interface {
 }
 
 type Command interface {
-	Do(deps Dependencies) (CommandResult, error)
+	Do(repos Repositories, client client.Client) (CommandResult, error)
 }
 
 type CommandResult interface {
@@ -40,13 +40,15 @@ type CommandResult interface {
 }
 
 type CLI struct {
-	deps    Dependencies
+	repos   Repositories
+	client  client.Client
 	cmdArgs []CommandArgs
 }
 
-func NewCLI(deps Dependencies) *CLI {
+func NewCLI(repos Repositories, client client.Client) *CLI {
 	return &CLI{
-		deps: deps,
+		repos:  repos,
+		client: client,
 		cmdArgs: []CommandArgs{
 			NewShowArgs(), NewProjectsArgs(),
 			NewAddArgs(), NewDeleteArgs(), NewListArgs(),
@@ -66,7 +68,7 @@ func (cli *CLI) Run(args []string) error {
 			return err
 		}
 
-		result, err := cmd.Do(cli.deps)
+		result, err := cmd.Do(cli.repos, cli.client)
 		if err != nil {
 			return err
 		}

@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"slices"
 	"strconv"
+
+	"go-mod.ewintr.nl/planner/sync/client"
 )
 
 type DeleteArgs struct {
@@ -45,9 +47,15 @@ type Delete struct {
 	Args DeleteArgs
 }
 
-func (del Delete) Do(deps Dependencies) (CommandResult, error) {
+func (del Delete) Do(repos Repositories, _ client.Client) (CommandResult, error) {
+	tx, err := repos.Begin()
+	if err != nil {
+		return nil, fmt.Errorf("could not start transaction: %v", err)
+	}
+	defer tx.Rollback()
+
 	var id string
-	idMap, err := deps.LocalIDRepo.FindAll()
+	idMap, err := repos.LocalID(tx).FindAll()
 	if err != nil {
 		return nil, fmt.Errorf("could not get local ids: %v", err)
 	}
@@ -60,7 +68,7 @@ func (del Delete) Do(deps Dependencies) (CommandResult, error) {
 		return nil, fmt.Errorf("could not find local id")
 	}
 
-	tsk, err := deps.TaskRepo.FindOne(id)
+	tsk, err := repos.Task(tx).FindOne(id)
 	if err != nil {
 		return nil, fmt.Errorf("could not get task: %v", err)
 	}
@@ -70,15 +78,19 @@ func (del Delete) Do(deps Dependencies) (CommandResult, error) {
 		return nil, fmt.Errorf("could not convert task to sync item: %v", err)
 	}
 	it.Deleted = true
-	if err := deps.SyncRepo.Store(it); err != nil {
+	if err := repos.Sync(tx).Store(it); err != nil {
 		return nil, fmt.Errorf("could not store sync item: %v", err)
 	}
 
-	if err := deps.LocalIDRepo.Delete(id); err != nil {
+	if err := repos.LocalID(tx).Delete(id); err != nil {
 		return nil, fmt.Errorf("could not delete local id: %v", err)
 	}
 
-	if err := deps.TaskRepo.Delete(id); err != nil {
+	if err := repos.Task(tx).Delete(id); err != nil {
+		return nil, fmt.Errorf("could not delete task: %v", err)
+	}
+
+	if err := tx.Commit(); err != nil {
 		return nil, fmt.Errorf("could not delete task: %v", err)
 	}
 

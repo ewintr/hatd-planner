@@ -27,7 +27,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	localIDRepo, taskRepo, syncRepo, err := sqlite.NewSqlites(conf.DBPath)
+	repos, err := sqlite.NewSqlites(conf.DBPath)
 	if err != nil {
 		fmt.Printf("could not open db file: %s\n", err)
 		os.Exit(1)
@@ -35,12 +35,7 @@ func main() {
 
 	syncClient := client.New(conf.SyncURL, conf.ApiKey)
 
-	cli := command.NewCLI(command.Dependencies{
-		LocalIDRepo: localIDRepo,
-		TaskRepo:    taskRepo,
-		SyncRepo:    syncRepo,
-		SyncClient:  syncClient,
-	})
+	cli := command.NewCLI(repos, syncClient)
 	if err := cli.Run(os.Args[1:]); err != nil {
 		fmt.Println(err)
 		os.Exit(1)

@@ -49,13 +49,12 @@ func TestDelete(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			// setup
-			taskRepo := memory.NewTask()
-			syncRepo := memory.NewSync()
-			if err := taskRepo.Store(e); err != nil {
+			mems := memory.New()
+
+			if err := mems.Task(nil).Store(e); err != nil {
 				t.Errorf("exp nil, got %v", err)
 			}
-			localIDRepo := memory.NewLocalID()
-			if err := localIDRepo.Store(e.ID, 1); err != nil {
+			if err := mems.LocalID(nil).Store(e.ID, 1); err != nil {
 				t.Errorf("exp nil, got %v", err)
 			}
 
@@ -69,11 +68,7 @@ func TestDelete(t *testing.T) {
 			}
 
 			// do
-			_, actDoErr := cmd.Do(command.Dependencies{
-				TaskRepo:    taskRepo,
-				LocalIDRepo: localIDRepo,
-				SyncRepo:    syncRepo,
-			})
+			_, actDoErr := cmd.Do(mems, nil)
 			if tc.expDoErr != (actDoErr != nil) {
 				t.Errorf("exp false, got %v", actDoErr)
 			}
@@ -82,18 +77,18 @@ func TestDelete(t *testing.T) {
 			}
 
 			// check
-			_, repoErr := taskRepo.FindOne(e.ID)
+			_, repoErr := mems.Task(nil).FindOne(e.ID)
 			if !errors.Is(repoErr, storage.ErrNotFound) {
 				t.Errorf("exp %v, got %v", storage.ErrNotFound, repoErr)
 			}
-			idMap, idErr := localIDRepo.FindAll()
+			idMap, idErr := mems.LocalID(nil).FindAll()
 			if idErr != nil {
 				t.Errorf("exp nil, got %v", idErr)
 			}
 			if len(idMap) != 0 {
 				t.Errorf("exp 0, got %v", len(idMap))
 			}
-			updated, err := syncRepo.FindAll()
+			updated, err := mems.Sync(nil).FindAll()
 			if err != nil {
 				t.Errorf("exp nil, got %v", err)
 			}

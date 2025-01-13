@@ -47,9 +47,7 @@ func TestSyncSend(t *testing.T) {
 	t.Parallel()
 
 	syncClient := client.NewMemory()
-	syncRepo := memory.NewSync()
-	localIDRepo := memory.NewLocalID()
-	taskRepo := memory.NewTask()
+	mems := memory.New()
 
 	it := item.Item{
 		ID:   "a",
@@ -60,7 +58,7 @@ func TestSyncSend(t *testing.T) {
   "duration":"1h" 
 }`,
 	}
-	if err := syncRepo.Store(it); err != nil {
+	if err := mems.Sync(nil).Store(it); err != nil {
 		t.Errorf("exp nil, got %v", err)
 	}
 
@@ -81,12 +79,7 @@ func TestSyncSend(t *testing.T) {
 			if err != nil {
 				t.Errorf("exp nil, got %v", err)
 			}
-			if _, err := cmd.Do(command.Dependencies{
-				TaskRepo:    taskRepo,
-				LocalIDRepo: localIDRepo,
-				SyncRepo:    syncRepo,
-				SyncClient:  syncClient,
-			}); err != nil {
+			if _, err := cmd.Do(mems, syncClient); err != nil {
 				t.Errorf("exp nil, got %v", err)
 			}
 			actItems, actErr := syncClient.Updated(tc.ks, tc.ts)
@@ -97,7 +90,7 @@ func TestSyncSend(t *testing.T) {
 				t.Errorf("(exp +, got -)\n%s", diff)
 			}
 
-			actLeft, actErr := syncRepo.FindAll()
+			actLeft, actErr := mems.Sync(nil).FindAll()
 			if actErr != nil {
 				t.Errorf("exp nil, got %v", actErr)
 			}
@@ -185,16 +178,14 @@ func TestSyncReceive(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			syncClient := client.NewMemory()
-			syncRepo := memory.NewSync()
-			localIDRepo := memory.NewLocalID()
-			taskRepo := memory.NewTask()
+			mems := memory.New()
 
 			// setup
 			for i, p := range tc.present {
-				if err := taskRepo.Store(p); err != nil {
+				if err := mems.Task(nil).Store(p); err != nil {
 					t.Errorf("exp nil, got %v", err)
 				}
-				if err := localIDRepo.Store(p.ID, i+1); err != nil {
+				if err := mems.LocalID(nil).Store(p.ID, i+1); err != nil {
 					t.Errorf("exp nil, got %v", err)
 				}
 			}
@@ -207,24 +198,19 @@ func TestSyncReceive(t *testing.T) {
 			if err != nil {
 				t.Errorf("exp nil, got %v", err)
 			}
-			if _, err := cmd.Do(command.Dependencies{
-				TaskRepo:    taskRepo,
-				LocalIDRepo: localIDRepo,
-				SyncRepo:    syncRepo,
-				SyncClient:  syncClient,
-			}); err != nil {
+			if _, err := cmd.Do(mems, syncClient); err != nil {
 				t.Errorf("exp nil, got %v", err)
 			}
 
 			// check result
-			actTasks, err := taskRepo.FindMany(storage.TaskListParams{})
+			actTasks, err := mems.Task(nil).FindMany(storage.TaskListParams{})
 			if err != nil {
 				t.Errorf("exp nil, got %v", err)
 			}
 			if diff := item.TaskDiffs(tc.expTask, actTasks); diff != "" {
 				t.Errorf("(exp +, got -)\n%s", diff)
 			}
-			actLocalIDs, err := localIDRepo.FindAll()
+			actLocalIDs, err := mems.LocalID(nil).FindAll()
 			if err != nil {
 				t.Errorf("exp nil, got %v", err)
 			}

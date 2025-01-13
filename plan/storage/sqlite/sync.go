@@ -6,18 +6,15 @@ import (
 	"time"
 
 	"go-mod.ewintr.nl/planner/item"
+	"go-mod.ewintr.nl/planner/plan/storage"
 )
 
-type SqliteSync struct {
-	db *sql.DB
+type Sync struct {
+	tx *storage.Tx
 }
 
-func NewSqliteSync(db *sql.DB) *SqliteSync {
-	return &SqliteSync{db: db}
-}
-
-func (s *SqliteSync) FindAll() ([]item.Item, error) {
-	rows, err := s.db.Query("SELECT id, kind, updated, deleted, date, recurrer, recur_next, body FROM items")
+func (s *Sync) FindAll() ([]item.Item, error) {
+	rows, err := s.tx.Query("SELECT id, kind, updated, deleted, date, recurrer, recur_next, body FROM items")
 	if err != nil {
 		return nil, fmt.Errorf("%w: failed to query items: %v", ErrSqliteFailure, err)
 	}
@@ -49,7 +46,7 @@ func (s *SqliteSync) FindAll() ([]item.Item, error) {
 	return items, nil
 }
 
-func (s *SqliteSync) Store(i item.Item) error {
+func (s *Sync) Store(i item.Item) error {
 	if i.Updated.IsZero() {
 		i.Updated = time.Now()
 	}
@@ -58,7 +55,7 @@ func (s *SqliteSync) Store(i item.Item) error {
 		recurStr = i.Recurrer.String()
 	}
 
-	_, err := s.db.Exec(
+	_, err := s.tx.Exec(
 		`INSERT OR REPLACE INTO items (id, kind, updated, deleted, date, recurrer, recur_next, body)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
 		i.ID,
@@ -76,24 +73,24 @@ func (s *SqliteSync) Store(i item.Item) error {
 	return nil
 }
 
-func (s *SqliteSync) DeleteAll() error {
-	_, err := s.db.Exec("DELETE FROM items")
+func (s *Sync) DeleteAll() error {
+	_, err := s.tx.Exec("DELETE FROM items")
 	if err != nil {
 		return fmt.Errorf("%w: failed to delete all items: %v", ErrSqliteFailure, err)
 	}
 	return nil
 }
 
-func (s *SqliteSync) SetLastUpdate(ts time.Time) error {
-	if _, err := s.db.Exec(`UPDATE syncupdate SET timestamp = ?`, ts.Format(time.RFC3339)); err != nil {
+func (s *Sync) SetLastUpdate(ts time.Time) error {
+	if _, err := s.tx.Exec(`UPDATE syncupdate SET timestamp = ?`, ts.Format(time.RFC3339)); err != nil {
 		return fmt.Errorf("%w: could not store timestamp: %v", ErrSqliteFailure, err)
 	}
 	return nil
 }
 
-func (s *SqliteSync) LastUpdate() (time.Time, error) {
+func (s *Sync) LastUpdate() (time.Time, error) {
 	var tsStr string
-	if err := s.db.QueryRow("SELECT timestamp FROM syncupdate").Scan(&tsStr); err != nil {
+	if err := s.tx.QueryRow("SELECT timestamp FROM syncupdate").Scan(&tsStr); err != nil {
 		return time.Time{}, fmt.Errorf("%w: failed to get last update: %v", ErrSqliteFailure, err)
 	}
 	ts, err := time.Parse(time.RFC3339, tsStr)

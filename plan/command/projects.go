@@ -5,6 +5,7 @@ import (
 	"sort"
 
 	"go-mod.ewintr.nl/planner/plan/format"
+	"go-mod.ewintr.nl/planner/sync/client"
 )
 
 type ProjectsArgs struct{}
@@ -23,10 +24,20 @@ func (pa ProjectsArgs) Parse(main []string, fields map[string]string) (Command, 
 
 type Projects struct{}
 
-func (ps Projects) Do(deps Dependencies) (CommandResult, error) {
-	projects, err := deps.TaskRepo.Projects()
+func (ps Projects) Do(repos Repositories, _ client.Client) (CommandResult, error) {
+	tx, err := repos.Begin()
+	if err != nil {
+		return nil, fmt.Errorf("could not start transaction: %v", err)
+	}
+	defer tx.Rollback()
+
+	projects, err := repos.Task(tx).Projects()
 	if err != nil {
 		return nil, fmt.Errorf("could not find projects: %v", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("could not list projects: %v", err)
 	}
 
 	return ProjectsResult{

@@ -9,6 +9,7 @@ import (
 	"go-mod.ewintr.nl/planner/item"
 	"go-mod.ewintr.nl/planner/plan/format"
 	"go-mod.ewintr.nl/planner/plan/storage"
+	"go-mod.ewintr.nl/planner/sync/client"
 )
 
 type ListArgs struct {
@@ -96,12 +97,18 @@ type List struct {
 	Args ListArgs
 }
 
-func (list List) Do(deps Dependencies) (CommandResult, error) {
-	localIDs, err := deps.LocalIDRepo.FindAll()
+func (list List) Do(repos Repositories, _ client.Client) (CommandResult, error) {
+	tx, err := repos.Begin()
+	if err != nil {
+		return nil, fmt.Errorf("could not start transaction: %v", err)
+	}
+	defer tx.Rollback()
+
+	localIDs, err := repos.LocalID(tx).FindAll()
 	if err != nil {
 		return nil, fmt.Errorf("could not get local ids: %v", err)
 	}
-	all, err := deps.TaskRepo.FindMany(storage.TaskListParams{
+	all, err := repos.Task(tx).FindMany(storage.TaskListParams{
 		HasRecurrer: list.Args.HasRecurrer,
 		From:        list.Args.From,
 		To:          list.Args.To,
@@ -122,6 +129,7 @@ func (list List) Do(deps Dependencies) (CommandResult, error) {
 			Task:    tsk,
 		})
 	}
+
 	return ListResult{
 		Tasks: res,
 	}, nil

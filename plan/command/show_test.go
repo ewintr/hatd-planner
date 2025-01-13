@@ -12,8 +12,8 @@ import (
 func TestShow(t *testing.T) {
 	t.Parallel()
 
-	taskRepo := memory.NewTask()
-	localRepo := memory.NewLocalID()
+	mems := memory.New()
+
 	tsk := item.Task{
 		ID:   "id",
 		Date: item.NewDate(2024, 10, 7),
@@ -21,10 +21,10 @@ func TestShow(t *testing.T) {
 			Title: "name",
 		},
 	}
-	if err := taskRepo.Store(tsk); err != nil {
+	if err := mems.Task(nil).Store(tsk); err != nil {
 		t.Errorf("exp nil, got %v", err)
 	}
-	if err := localRepo.Store(tsk.ID, 1); err != nil {
+	if err := mems.LocalID(nil).Store(tsk.ID, 1); err != nil {
 		t.Errorf("exp nil, got %v", err)
 	}
 
@@ -69,10 +69,7 @@ func TestShow(t *testing.T) {
 			}
 
 			// do
-			_, actDoErr := cmd.Do(command.Dependencies{
-				TaskRepo:    taskRepo,
-				LocalIDRepo: localRepo,
-			})
+			_, actDoErr := cmd.Do(mems, nil)
 			if tc.expDoErr != (actDoErr != nil) {
 				t.Errorf("exp %v, got %v", tc.expDoErr, actDoErr != nil)
 			}

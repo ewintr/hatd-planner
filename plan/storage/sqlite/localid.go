@@ -9,12 +9,12 @@ import (
 )
 
 type LocalID struct {
-	db *sql.DB
+	tx *storage.Tx
 }
 
 func (l *LocalID) FindOne(lid int) (string, error) {
 	var id string
-	err := l.db.QueryRow(`
+	err := l.tx.QueryRow(`
 SELECT id
 FROM localids
 WHERE local_id = ?
@@ -30,7 +30,7 @@ WHERE local_id = ?
 }
 
 func (l *LocalID) FindAll() (map[string]int, error) {
-	rows, err := l.db.Query(`
+	rows, err := l.tx.Query(`
 SELECT id, local_id
 FROM localids
 `)
@@ -69,7 +69,7 @@ func (l *LocalID) Next() (int, error) {
 }
 
 func (l *LocalID) Store(id string, localID int) error {
-	if _, err := l.db.Exec(`
+	if _, err := l.tx.Exec(`
 INSERT INTO localids
 (id, local_id)
 VALUES
@@ -81,7 +81,7 @@ VALUES
 }
 
 func (l *LocalID) Delete(id string) error {
-	result, err := l.db.Exec(`
+	result, err := l.tx.Exec(`
 DELETE FROM localids
 WHERE id = ?`, id)
 	if err != nil {

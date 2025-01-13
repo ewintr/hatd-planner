@@ -79,8 +79,8 @@ func TestListParse(t *testing.T) {
 func TestList(t *testing.T) {
 	t.Parallel()
 
-	taskRepo := memory.NewTask()
-	localRepo := memory.NewLocalID()
+	mems := memory.New()
+
 	e := item.Task{
 		ID:   "id",
 		Date: item.NewDate(2024, 10, 7),
@@ -88,10 +88,10 @@ func TestList(t *testing.T) {
 			Title: "name",
 		},
 	}
-	if err := taskRepo.Store(e); err != nil {
+	if err := mems.Task(nil).Store(e); err != nil {
 		t.Errorf("exp nil, got %v", err)
 	}
-	if err := localRepo.Store(e.ID, 1); err != nil {
+	if err := mems.LocalID(nil).Store(e.ID, 1); err != nil {
 		t.Errorf("exp nil, got %v", err)
 	}
 
@@ -115,10 +115,7 @@ func TestList(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			res, err := tc.cmd.Do(command.Dependencies{
-				TaskRepo:    taskRepo,
-				LocalIDRepo: localRepo,
-			})
+			res, err := tc.cmd.Do(mems, nil)
 			if err != nil {
 				t.Errorf("exp nil, got %v", err)
 			}

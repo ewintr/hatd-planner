@@ -60,9 +60,7 @@ func TestAdd(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			// setup
-			taskRepo := memory.NewTask()
-			localIDRepo := memory.NewLocalID()
-			syncRepo := memory.NewSync()
+			mems := memory.New()
 
 			// parse
 			cmd, actParseErr := command.NewAddArgs().Parse(tc.main, tc.fields)
@@ -74,16 +72,12 @@ func TestAdd(t *testing.T) {
 			}
 
 			// do
-			if _, err := cmd.Do(command.Dependencies{
-				TaskRepo:    taskRepo,
-				LocalIDRepo: localIDRepo,
-				SyncRepo:    syncRepo,
-			}); err != nil {
+			if _, err := cmd.Do(mems, nil); err != nil {
 				t.Errorf("exp nil, got %v", err)
 			}
 
 			// check
-			actTasks, err := taskRepo.FindMany(storage.TaskListParams{})
+			actTasks, err := mems.Task(nil).FindMany(storage.TaskListParams{})
 			if err != nil {
 				t.Errorf("exp nil, got %v", err)
 			}
@@ -91,7 +85,7 @@ func TestAdd(t *testing.T) {
 				t.Errorf("exp 1, got %d", len(actTasks))
 			}
 
-			actLocalIDs, err := localIDRepo.FindAll()
+			actLocalIDs, err := mems.LocalID(nil).FindAll()
 			if err != nil {
 				t.Errorf("exp nil, got %v", err)
 			}
@@ -110,7 +104,7 @@ func TestAdd(t *testing.T) {
 				t.Errorf("(exp -, got +)\n%s", diff)
 			}
 
-			updated, err := syncRepo.FindAll()
+			updated, err := mems.Sync(nil).FindAll()
 			if err != nil {
 				t.Errorf("exp nil, got %v", err)
 			}

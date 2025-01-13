@@ -12,6 +12,10 @@ var (
 	ErrNotFound = errors.New("not found")
 )
 
+type Txer interface {
+	Begin() (*Tx, error)
+}
+
 type LocalID interface {
 	FindOne(lid int) (string, error)
 	FindAll() (map[string]int, error)

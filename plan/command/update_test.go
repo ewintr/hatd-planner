@@ -189,10 +189,8 @@ func TestUpdateExecute(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			// setup
-			taskRepo := memory.NewTask()
-			localIDRepo := memory.NewLocalID()
-			syncRepo := memory.NewSync()
-			if err := taskRepo.Store(item.Task{
+			mems := memory.New()
+			if err := mems.Task(nil).Store(item.Task{
 				ID:   tskID,
 				Date: aDate,
 				TaskBody: item.TaskBody{
@@ -204,7 +202,7 @@ func TestUpdateExecute(t *testing.T) {
 			}); err != nil {
 				t.Errorf("exp nil, got %v", err)
 			}
-			if err := localIDRepo.Store(tskID, lid); err != nil {
+			if err := mems.LocalID(nil).Store(tskID, lid); err != nil {
 				t.Errorf("exp nil, ,got %v", err)
 			}
 
@@ -218,11 +216,7 @@ func TestUpdateExecute(t *testing.T) {
 			}
 
 			// do
-			_, actDoErr := cmd.Do(command.Dependencies{
-				TaskRepo:    taskRepo,
-				LocalIDRepo: localIDRepo,
-				SyncRepo:    syncRepo,
-			})
+			_, actDoErr := cmd.Do(mems, nil)
 			if tc.expDoErr != (actDoErr != nil) {
 				t.Errorf("exp %v, got %v", tc.expDoErr, actDoErr)
 			}
@@ -231,14 +225,14 @@ func TestUpdateExecute(t *testing.T) {
 			}
 
 			// check
-			actTask, err := taskRepo.FindOne(tskID)
+			actTask, err := mems.Task(nil).FindOne(tskID)
 			if err != nil {
 				t.Errorf("exp nil, got %v", err)
 			}
 			if diff := item.TaskDiff(tc.expTask, actTask); diff != "" {
 				t.Errorf("(exp -, got +)\n%s", diff)
 			}
-			updated, err := syncRepo.FindAll()
+			updated, err := mems.Sync(nil).FindAll()
 			if err != nil {
 				t.Errorf("exp nil, got %v", err)
 			}

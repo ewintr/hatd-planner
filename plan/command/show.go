@@ -8,6 +8,7 @@ import (
 	"go-mod.ewintr.nl/planner/item"
 	"go-mod.ewintr.nl/planner/plan/format"
 	"go-mod.ewintr.nl/planner/plan/storage"
+	"go-mod.ewintr.nl/planner/sync/client"
 )
 
 type ShowArgs struct {
@@ -38,8 +39,14 @@ type Show struct {
 	args ShowArgs
 }
 
-func (s Show) Do(deps Dependencies) (CommandResult, error) {
-	id, err := deps.LocalIDRepo.FindOne(s.args.localID)
+func (s Show) Do(repos Repositories, _ client.Client) (CommandResult, error) {
+	tx, err := repos.Begin()
+	if err != nil {
+		return nil, fmt.Errorf("could not start transaction: %v", err)
+	}
+	defer tx.Rollback()
+
+	id, err := repos.LocalID(tx).FindOne(s.args.localID)
 	switch {
 	case errors.Is(err, storage.ErrNotFound):
 		return nil, fmt.Errorf("could not find local id")
@@ -47,9 +54,13 @@ func (s Show) Do(deps Dependencies) (CommandResult, error) {
 		return nil, err
 	}
 
-	tsk, err := deps.TaskRepo.FindOne(id)
+	tsk, err := repos.Task(tx).FindOne(id)
 	if err != nil {
 		return nil, fmt.Errorf("could not find task")
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("could not show task: %v", err)
 	}
 
 	return ShowResult{

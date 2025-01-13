@@ -10,7 +10,7 @@ import (
 )
 
 type SqliteTask struct {
-	db *sql.DB
+	tx *storage.Tx
 }
 
 func (t *SqliteTask) Store(tsk item.Task) error {
@@ -18,7 +18,7 @@ func (t *SqliteTask) Store(tsk item.Task) error {
 	if tsk.Recurrer != nil {
 		recurStr = tsk.Recurrer.String()
 	}
-	if _, err := t.db.Exec(`
+	if _, err := t.tx.Exec(`
 INSERT INTO tasks
 (id, title, project, date, time, duration, recurrer)
 VALUES
@@ -42,7 +42,7 @@ recurrer=?
 func (t *SqliteTask) FindOne(id string) (item.Task, error) {
 	var tsk item.Task
 	var dateStr, timeStr, recurStr, durStr string
-	err := t.db.QueryRow(`
+	err := t.tx.QueryRow(`
 SELECT id, title, project, date, time, duration, recurrer
 FROM tasks
 WHERE id = ?`, id).Scan(&tsk.ID, &tsk.Title, &tsk.Project, &dateStr, &timeStr, &durStr, &recurStr)
@@ -98,7 +98,7 @@ func (t *SqliteTask) FindMany(params storage.TaskListParams) ([]item.Task, error
 		}
 	}
 
-	rows, err := t.db.Query(query, args...)
+	rows, err := t.tx.Query(query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrSqliteFailure, err)
 	}
@@ -126,7 +126,7 @@ func (t *SqliteTask) FindMany(params storage.TaskListParams) ([]item.Task, error
 }
 
 func (t *SqliteTask) Delete(id string) error {
-	result, err := t.db.Exec(`
+	result, err := t.tx.Exec(`
 DELETE FROM tasks
 WHERE id = ?`, id)
 	if err != nil {
@@ -146,7 +146,7 @@ WHERE id = ?`, id)
 }
 
 func (t *SqliteTask) Projects() (map[string]int, error) {
-	rows, err := t.db.Query(`SELECT project, count(*) FROM tasks GROUP BY project`)
+	rows, err := t.tx.Query(`SELECT project, count(*) FROM tasks GROUP BY project`)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrSqliteFailure, err)
 	}

@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"go-mod.ewintr.nl/planner/item"
+	"go-mod.ewintr.nl/planner/sync/client"
 )
 
 type AddArgs struct {
@@ -92,16 +93,22 @@ type Add struct {
 	Args AddArgs
 }
 
-func (a Add) Do(deps Dependencies) (CommandResult, error) {
-	if err := deps.TaskRepo.Store(a.Args.Task); err != nil {
+func (a Add) Do(repos Repositories, _ client.Client) (CommandResult, error) {
+	tx, err := repos.Begin()
+	if err != nil {
+		return nil, fmt.Errorf("could not start transaction: %v", err)
+	}
+	defer tx.Rollback()
+
+	if err := repos.Task(tx).Store(a.Args.Task); err != nil {
 		return nil, fmt.Errorf("could not store event: %v", err)
 	}
 
-	localID, err := deps.LocalIDRepo.Next()
+	localID, err := repos.LocalID(tx).Next()
 	if err != nil {
 		return nil, fmt.Errorf("could not create next local id: %v", err)
 	}
-	if err := deps.LocalIDRepo.Store(a.Args.Task.ID, localID); err != nil {
+	if err := repos.LocalID(tx).Store(a.Args.Task.ID, localID); err != nil {
 		return nil, fmt.Errorf("could not store local id: %v", err)
 	}
 
@@ -109,8 +116,12 @@ func (a Add) Do(deps Dependencies) (CommandResult, error) {
 	if err != nil {
 		return nil, fmt.Errorf("could not convert event to sync item: %v", err)
 	}
-	if err := deps.SyncRepo.Store(it); err != nil {
+	if err := repos.Sync(tx).Store(it); err != nil {
 		return nil, fmt.Errorf("could not store sync item: %v", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("could not add task: %v", err)
 	}
 
 	return AddRender{}, nil
