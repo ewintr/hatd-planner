@@ -5,6 +5,7 @@ import (
 	"slices"
 	"strconv"
 
+	"go-mod.ewintr.nl/planner/plan/format"
 	"go-mod.ewintr.nl/planner/sync/client"
 )
 
@@ -94,11 +95,15 @@ func (del Delete) Do(repos Repositories, _ client.Client) (CommandResult, error)
 		return nil, fmt.Errorf("could not delete task: %v", err)
 	}
 
-	return DeleteResult{}, nil
+	return DeleteResult{
+		Title: tsk.Title,
+	}, nil
 }
 
-type DeleteResult struct{}
+type DeleteResult struct {
+	Title string
+}
 
 func (dr DeleteResult) Render() string {
-	return "task removed"
+	return fmt.Sprintf("removed task %s", format.Bold(dr.Title))
 }
