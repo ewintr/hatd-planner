@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"go-mod.ewintr.nl/planner/item"
+	"go-mod.ewintr.nl/planner/plan/format"
 	"go-mod.ewintr.nl/planner/sync/client"
 )
 
@@ -124,12 +125,15 @@ func (a Add) Do(repos Repositories, _ client.Client) (CommandResult, error) {
 		return nil, fmt.Errorf("could not add task: %v", err)
 	}
 
-	return AddRender{}, nil
+	return AddResult{
+		LocalID: localID,
+	}, nil
 }
 
-type AddRender struct {
+type AddResult struct {
+	LocalID int
 }
 
-func (ar AddRender) Render() string {
-	return "stored task"
+func (ar AddResult) Render() string {
+	return fmt.Sprintf("stored task %s", format.Bold(fmt.Sprintf("%d", ar.LocalID)))
 }

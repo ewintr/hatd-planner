@@ -95,3 +95,7 @@ func findTermWidth() int {
 	}
 	return width
 }
+
+func Bold(str string) string {
+	return fmt.Sprintf("\x1b[1;37m%s\x1b[0m", str)
+}
