@@ -59,10 +59,10 @@ func TestMatch(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			if !storage.Match(tskMatch, tc.params) {
+			if !storage.MatchTask(tskMatch, tc.params) {
 				t.Errorf("exp tsk to match")
 			}
-			if storage.Match(tskNotMatch, tc.params) {
+			if storage.MatchTask(tskNotMatch, tc.params) {
 				t.Errorf("exp tsk to not match")
 			}
 		})
