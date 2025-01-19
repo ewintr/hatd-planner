@@ -2,10 +2,15 @@ package item
 
 import (
 	"encoding/json"
+	"errors"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/uuid"
+)
+
+var (
+	ErrInvalidKind = errors.New("invalid kind")
 )
 
 type Kind string

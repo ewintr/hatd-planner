@@ -56,7 +56,7 @@ type Task struct {
 
 func NewTask(i Item) (Task, error) {
 	if i.Kind != KindTask {
-		return Task{}, fmt.Errorf("item is not an task")
+		return Task{}, ErrInvalidKind
 	}
 
 	var t Task
