@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"go-mod.ewintr.nl/planner/plan/command"
+	"go-mod.ewintr.nl/planner/plan/cli"
 	"go-mod.ewintr.nl/planner/plan/storage/sqlite"
 	"go-mod.ewintr.nl/planner/sync/client"
 	"gopkg.in/yaml.v3"
@@ -35,7 +35,7 @@ func main() {
 
 	syncClient := client.New(conf.SyncURL, conf.ApiKey)
 
-	cli := command.NewCLI(repos, syncClient)
+	cli := cli.NewCLI(repos, syncClient)
 	if err := cli.Run(os.Args[1:]); err != nil {
 		fmt.Println(err)
 		os.Exit(1)

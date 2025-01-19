@@ -36,7 +36,7 @@ func (t *Task) FindMany(params storage.TaskListParams) ([]item.Task, error) {
 
 	tasks := make([]item.Task, 0, len(t.tasks))
 	for _, tsk := range t.tasks {
-		if storage.Match(tsk, params) {
+		if storage.MatchTask(tsk, params) {
 			tasks = append(tasks, tsk)
 		}
 	}

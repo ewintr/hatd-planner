@@ -49,7 +49,13 @@ type Task interface {
 	Projects() (map[string]int, error)
 }
 
-func Match(tsk item.Task, params TaskListParams) bool {
+type Schedule interface {
+	Store(sched item.Schedule) error
+	Find(start, end item.Date) ([]item.Schedule, error)
+	Delete(id string) error
+}
+
+func MatchTask(tsk item.Task, params TaskListParams) bool {
 	if params.HasRecurrer && tsk.Recurrer == nil {
 		return false
 	}

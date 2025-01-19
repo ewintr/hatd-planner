@@ -44,6 +44,10 @@ func (sqs *Sqlites) Task(tx *storage.Tx) storage.Task {
 	return &SqliteTask{tx: tx}
 }
 
+func (sqs *Sqlites) Schedule(tx *storage.Tx) storage.Schedule {
+	return &SqliteSchedule{tx: tx}
+}
+
 func NewSqlites(dbPath string) (*Sqlites, error) {
 	db, err := sql.Open("sqlite", dbPath)
 	if err != nil {

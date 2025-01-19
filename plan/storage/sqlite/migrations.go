@@ -44,4 +44,11 @@ var migrations = []string{
 	`ALTER TABLE tasks ADD COLUMN project TEXT NOT NULL DEFAULT ''`,
 	`CREATE TABLE syncupdate ("timestamp" TIMESTAMP NOT NULL)`,
 	`INSERT INTO syncupdate (timestamp) VALUES ("0001-01-01T00:00:00Z")`,
+
+	`CREATE TABLE schedules (
+  	"id" TEXT UNIQUE NOT NULL DEFAULT '',
+	  "title" TEXT NOT NULL DEFAULT '',
+	  "date" TEXT NOT NULL DEFAULT '',
+	  "recur" TEXT NOT NULL DEFAULT '',
+	  "recur_next" TEXT NOT NULL DEFAULT '')`,
 }

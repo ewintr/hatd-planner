@@ -5,16 +5,18 @@ import (
 )
 
 type Memories struct {
-	localID *LocalID
-	sync    *Sync
-	task    *Task
+	localID  *LocalID
+	sync     *Sync
+	task     *Task
+	schedule *Schedule
 }
 
 func New() *Memories {
 	return &Memories{
-		localID: NewLocalID(),
-		sync:    NewSync(),
-		task:    NewTask(),
+		localID:  NewLocalID(),
+		sync:     NewSync(),
+		task:     NewTask(),
+		schedule: NewSchedule(),
 	}
 }
 
@@ -32,4 +34,8 @@ func (mems *Memories) Sync(_ *storage.Tx) storage.Sync {
 
 func (mems *Memories) Task(_ *storage.Tx) storage.Task {
 	return mems.task
+}
+
+func (mems *Memories) Schedule(_ *storage.Tx) storage.Schedule {
+	return mems.schedule
 }
