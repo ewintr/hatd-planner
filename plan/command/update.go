@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"go-mod.ewintr.nl/planner/item"
+	"go-mod.ewintr.nl/planner/plan/format"
 	"go-mod.ewintr.nl/planner/plan/storage"
 	"go-mod.ewintr.nl/planner/sync/client"
 )
@@ -136,25 +137,33 @@ func (u Update) Do(repos Repositories, _ client.Client) (CommandResult, error) {
 	if err != nil {
 		return nil, fmt.Errorf("could not find task")
 	}
+	changes := make(map[string]string)
+	oldTitle := tsk.Title
 
 	if u.args.Title != "" {
 		tsk.Title = u.args.Title
+		changes["title"] = u.args.Title
 	}
 	if slices.Contains(u.args.NeedUpdate, "project") {
 		tsk.Project = u.args.Project
+		changes["project"] = tsk.Project
 	}
 	if slices.Contains(u.args.NeedUpdate, "date") {
 		tsk.Date = u.args.Date
+		changes["date"] = tsk.Date.String()
 	}
 	if slices.Contains(u.args.NeedUpdate, "time") {
 		tsk.Time = u.args.Time
+		changes["time"] = tsk.Time.String()
 	}
 	if slices.Contains(u.args.NeedUpdate, "duration") {
 		tsk.Duration = u.args.Duration
+		changes["duration"] = tsk.Duration.String()
 	}
 	if slices.Contains(u.args.NeedUpdate, "recurrer") {
 		tsk.Recurrer = u.args.Recurrer
 		tsk.RecurNext = tsk.Recurrer.First()
+		changes["recurrer"] = tsk.Recurrer.String()
 	}
 
 	if !tsk.Valid() {
@@ -177,11 +186,21 @@ func (u Update) Do(repos Repositories, _ client.Client) (CommandResult, error) {
 		return nil, fmt.Errorf("could not update task: %v", err)
 	}
 
-	return UpdateResult{}, nil
+	return UpdateResult{
+		Title:   oldTitle,
+		Changes: changes,
+	}, nil
 }
 
-type UpdateResult struct{}
+type UpdateResult struct {
+	Title   string
+	Changes map[string]string
+}
 
 func (ur UpdateResult) Render() string {
-	return "task updated"
+	chStr := make([]string, 0, len(ur.Changes))
+	for k, v := range ur.Changes {
+		chStr = append(chStr, fmt.Sprintf("%s to %s", format.Bold(k), format.Bold(v)))
+	}
+	return fmt.Sprintf("updated task %s, set %s", format.Bold(ur.Title), strings.Join(chStr, ", "))
 }
