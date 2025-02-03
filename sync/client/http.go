@@ -24,7 +24,7 @@ func New(url, apiKey string) *HTTP {
 		baseURL: url,
 		apiKey:  apiKey,
 		c: &http.Client{
-			Timeout: 10 * time.Second,
+			Timeout: 300 * time.Second,
 		},
 	}
 }
