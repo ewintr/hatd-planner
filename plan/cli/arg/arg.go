@@ -12,6 +12,10 @@ func FindFields(args []string) ([]string, map[string]string) {
 	fields := make(map[string]string)
 	main := make([]string, 0)
 	for i := 0; i < len(args); i++ {
+		if strings.HasPrefix(args[i], "http://") || strings.HasPrefix(args[i], "https://") {
+			main = append(main, args[i])
+			continue
+		}
 		// normal key:value
 		if k, v, ok := strings.Cut(args[i], ":"); ok && !strings.Contains(k, " ") {
 			fields[k] = v
@@ -27,7 +31,6 @@ func FindFields(args []string) ([]string, map[string]string) {
 
 	return main, fields
 }
-
 func ResolveFields(fields map[string]string, tmpl map[string][]string) (map[string]string, error) {
 	res := make(map[string]string)
 	for k, v := range fields {

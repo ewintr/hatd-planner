@@ -7,6 +7,8 @@ import (
 	"go-mod.ewintr.nl/planner/plan/cli/arg"
 )
 
+// Please add a testcase to the following function that checks whether fields
+// that start with "http:" and "https:" are ignored
 func TestFindFields(t *testing.T) {
 	t.Parallel()
 
@@ -49,6 +51,14 @@ func TestFindFields(t *testing.T) {
 			name:    "split main",
 			args:    []string{"one", "flag1:value1", "two"},
 			expMain: []string{"one", "two"},
+			expFields: map[string]string{
+				"flag1": "value1",
+			},
+		},
+		{
+			name:    "ignore http and https fields",
+			args:    []string{"one", "http://example.com", "two", "https://example.com", "flag1:value1"},
+			expMain: []string{"one", "http://example.com", "two", "https://example.com"},
 			expFields: map[string]string{
 				"flag1": "value1",
 			},
